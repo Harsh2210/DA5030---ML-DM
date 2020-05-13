@@ -6,17 +6,18 @@ output: pdf_document
 ---
 
 ```{r}
-
+# Importing data from csv file using read.csv with header = false as we don't have headers in our csv file
 customer_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 1\\customertxndata.csv" ,header = F)
 
+# Head is used to see top 6 rows of data
 head(customer_data)
 
-# names(customer_data)
+# Names is used to get the column names
+names(customer_data)
 
 ```
 
 ```{r}
-
 customer_data_revenue <- na.exclude(customer_data$V5)
 customer_data_visits <- na.exclude(customer_data$V1)
 customer_data_gender <- na.exclude(customer_data$V4)
@@ -48,8 +49,6 @@ common_gender
 # common_gender <- as.data.frame(sort(table(customer_data$V4),decreasing = T))
 # common_gender[1,]
 
-
-
 ```
 
 ```{r}
@@ -58,7 +57,6 @@ library(ggplot2)
 library(data.table)
 
 # Bar Chart of gender vs revenue
-
 customer_data_graph <- customer_data
 setDT(customer_data_graph)
 
@@ -72,11 +70,9 @@ ggplot(customer_data_gender, aes(x = V4 , y = V1))+geom_bar(stat = "identity",fi
 
 # By default, geom_bar uses stat="count" which makes the height of the bar proportion to the number of cases in each group (or if the weight aethetic is supplied, the sum of the weights). If you want the heights of the bars to represent values in the data, use stat="identity" and map a variable to the y aesthetic.
 
-
 ```
 
 ```{r}
-
 # Pearson's moment of correlation
 
 cor.test(customer_data$V1, customer_data$V5)
@@ -87,18 +83,15 @@ cor.test(customer_data$V1, customer_data$V5)
 
 # We can observe the sample estimates cor value which is 0.7212 which is positive and close to one. So we can conclude that number of visits and revenue are highly correlated.
 
-
 library(ggpubr)
 
 # Plotting the graph of revenue vs number of visits to observe correlation 
 ggscatter(customer_data, x = "V1" , y = "V5" , add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "pearson", xlab = "Number of Visits", ylab = "Revenue")
 
-
 ```
 
 ```{r}
-
 library(tidyverse)
 
 # creating a table containing only the NA values
@@ -139,7 +132,6 @@ customer_data$V4[is.na(x = customer_data$V4)] <- "Male"
 library(data.table)
 setDT(customer_data)
 
-
 # We split the data using true/false logic. Basically its a logical pattern which on repetition gives even rows or odd rows.
 
 training_data <- customer_data[rep(c(TRUE,FALSE), length = .N), ] 
@@ -152,7 +144,6 @@ validation_data <- customer_data[rep(c(FALSE,TRUE), length= .N), ]
 
 # Calculate the mean revenue for the training and the validation data sets and compare them. Comment on the difference.
 
-
 # Calculating mean revenue for trainig dataset
 training_data[, na.exclude(mean(V5))]
 
@@ -161,13 +152,11 @@ validation_data[, na.exclude(mean(V5))]
 
 # We can observe that there is slight difference in the mean of both the variables. This is because training data might have some low values and validation data might have higher values because of which training data has lower mean value compared to validation data.
 
-
 ```
 
 ```{r}
 
 # For many data mining and machine learning tasks, there are packages in R. Use the sample() function to split the data set, so that 60% is used for training and 20% is used for testing, and another 20% is used for validation. To ensure that your code is reproducible and that everyone gets the same result, use the number 77654 as your seed for the random number generator. Use the code fragment below for reference:
-
 
 set.seed(77654)
 
@@ -189,13 +178,4 @@ testing <- remaining_data[sample_2, ]
 # Creating dataset for validation
 validation <- remaining_data[-sample_2, ]
 
-
 ```
-
-
-
-
-
-
-
-
