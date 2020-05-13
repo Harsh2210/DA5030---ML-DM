@@ -15,7 +15,6 @@ head(customer_data)
 
 ```
 
-
 ```{r}
 
 customer_data_revenue <- na.exclude(customer_data$V5)
@@ -53,7 +52,6 @@ common_gender
 
 ```
 
-
 ```{r}
 
 library(ggplot2)
@@ -77,9 +75,6 @@ ggplot(customer_data_gender, aes(x = V4 , y = V1))+geom_bar(stat = "identity",fi
 
 ```
 
-
-
-
 ```{r}
 
 # Pearson's moment of correlation
@@ -102,8 +97,6 @@ ggscatter(customer_data, x = "V1" , y = "V5" , add = "reg.line", conf.int = TRUE
 
 ```
 
-
-
 ```{r}
 
 library(tidyverse)
@@ -112,7 +105,6 @@ library(tidyverse)
 na_data <- customer_data %>% filter_all(any_vars(is.na(.)))
 
 ```
-
 
 ```{r}
 
@@ -140,7 +132,6 @@ customer_data$V4[is.na(x = customer_data$V4)] <- "Male"
 
 ```
 
-
 ```{r}
 
 # Spliting the data into a trainig and validation dataset 
@@ -157,7 +148,6 @@ validation_data <- customer_data[rep(c(FALSE,TRUE), length= .N), ]
 
 ```
 
-
 ```{r}
 
 # Calculate the mean revenue for the training and the validation data sets and compare them. Comment on the difference.
@@ -173,8 +163,6 @@ validation_data[, na.exclude(mean(V5))]
 
 
 ```
-
-
 
 ```{r}
 
