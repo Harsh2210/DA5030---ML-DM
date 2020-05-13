@@ -1,0 +1,213 @@
+---
+title: "Practice-1"
+author: "Harsh"
+date: "07/05/2020"
+output: pdf_document
+---
+
+```{r}
+
+customer_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 1\\customertxndata.csv" ,header = F)
+
+head(customer_data)
+
+# names(customer_data)
+
+```
+
+
+```{r}
+
+customer_data_revenue <- na.exclude(customer_data$V5)
+customer_data_visits <- na.exclude(customer_data$V1)
+customer_data_gender <- na.exclude(customer_data$V4)
+
+# Sum of total transaction amount
+
+total_revenue <- sum(customer_data_revenue)
+total_revenue
+
+# Mean number of visits
+
+mean_visits <- mean(customer_data_visits)
+mean_visits
+
+# Median of revenue
+
+median_revenue <- median(customer_data_revenue)
+median_revenue
+
+# Standard deviation of revenue
+
+std_revenue <- sd(customer_data_revenue)
+std_revenue
+
+# Most common gender
+common_gender <- max(table(customer_data_gender))
+common_gender
+
+# common_gender <- as.data.frame(sort(table(customer_data$V4),decreasing = T))
+# common_gender[1,]
+
+
+
+```
+
+
+```{r}
+
+library(ggplot2)
+library(data.table)
+
+# Bar Chart of gender vs revenue
+
+customer_data_graph <- customer_data
+setDT(customer_data_graph)
+
+#Getting the count of genders by grouping and taking the sum using "by and sum function" in the data.table
+customer_data_gender <- customer_data_graph[,sum(V5), by= V4]
+customer_data_gender <- na.omit(customer_data_gender)
+
+ggplot(customer_data_gender, aes(x = V4 , y = V1))+geom_bar(stat = "identity",fill = "blue")+xlab("Gender")+ylab("Revenue")
+
+# Why use stat = "identity" ?
+
+# By default, geom_bar uses stat="count" which makes the height of the bar proportion to the number of cases in each group (or if the weight aethetic is supplied, the sum of the weights). If you want the heights of the bars to represent values in the data, use stat="identity" and map a variable to the y aesthetic.
+
+
+```
+
+
+
+
+```{r}
+
+# Pearson's moment of correlation
+
+cor.test(customer_data$V1, customer_data$V5)
+
+# If the p-value is < 5%, then the correlation between x and y is significant.
+
+# Since the output p-value is less than 0.05 which is significance alpha value we can say that the number of visits and revenue are significant.
+
+# We can observe the sample estimates cor value which is 0.7212 which is positive and close to one. So we can conclude that number of visits and revenue are highly correlated.
+
+
+library(ggpubr)
+
+# Plotting the graph of revenue vs number of visits to observe correlation 
+ggscatter(customer_data, x = "V1" , y = "V5" , add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson", xlab = "Number of Visits", ylab = "Revenue")
+
+
+```
+
+
+
+```{r}
+
+library(tidyverse)
+
+# creating a table containing only the NA values
+na_data <- customer_data %>% filter_all(any_vars(is.na(.)))
+
+```
+
+
+```{r}
+
+# Cleaning Transactions and Gender
+na_omit_transactions <- na.omit(customer_data$V2)
+na_omit_gender <- na.omit(customer_data$V4)
+
+# Mean of Transactions
+round(mean(na_omit_transactions))
+
+# Creating function for mode
+getmode <- function(v) 
+  {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+  }
+# Mode of gender
+customer_data[, getmode(na_omit_gender)]
+
+# Impute Transaction
+customer_data$V2[is.na(x = customer_data$V2)] <- 1
+
+# Impute Gender
+customer_data$V4[is.na(x = customer_data$V4)] <- "Male"
+
+```
+
+
+```{r}
+
+# Spliting the data into a trainig and validation dataset 
+
+library(data.table)
+setDT(customer_data)
+
+
+# We split the data using true/false logic. Basically its a logical pattern which on repetition gives even rows or odd rows.
+
+training_data <- customer_data[rep(c(TRUE,FALSE), length = .N), ] 
+
+validation_data <- customer_data[rep(c(FALSE,TRUE), length= .N), ]
+
+```
+
+
+```{r}
+
+# Calculate the mean revenue for the training and the validation data sets and compare them. Comment on the difference.
+
+
+# Calculating mean revenue for trainig dataset
+training_data[, na.exclude(mean(V5))]
+
+# Calculating mean revenue for validation dataset
+validation_data[, na.exclude(mean(V5))]
+
+# We can observe that there is slight difference in the mean of both the variables. This is because training data might have some low values and validation data might have higher values because of which training data has lower mean value compared to validation data.
+
+
+```
+
+
+
+```{r}
+
+# For many data mining and machine learning tasks, there are packages in R. Use the sample() function to split the data set, so that 60% is used for training and 20% is used for testing, and another 20% is used for validation. To ensure that your code is reproducible and that everyone gets the same result, use the number 77654 as your seed for the random number generator. Use the code fragment below for reference:
+
+
+set.seed(77654)
+
+# Creating first sample to set 60% of data for training
+sample_1 <- sample.int(n = nrow(customer_data), size = floor(.60*nrow(customer_data)), replace = F)
+
+# Creating dataset for training
+training <- customer_data[sample_1,]
+
+# Creating a dataset of the remaining data for testing and validation
+remaining_data <- customer_data[-sample_1,]
+
+# Creating second sample to split the reamining dataset for testing and validation
+sample_2 <- sample.int(n = nrow(remaining_data), size = floor(.50*nrow(remaining_data)), replace = F)
+
+# Creating dataset for testing
+testing <- remaining_data[sample_2, ]
+
+# Creating dataset for validation
+validation <- remaining_data[-sample_2, ]
+
+
+```
+
+
+
+
+
+
+
+
