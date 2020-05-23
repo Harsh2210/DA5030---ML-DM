@@ -1,0 +1,117 @@
+---
+title: "Practice-2"
+author: "Harsh"
+date: "17/05/2020"
+output: html_document
+---
+
+Question 1 : The built-in dataset USArrests contains statistics about violent crime rates in the US States. Determine which states are outliers in terms of murders. Outliers, for the sake of this question, are defined as values that are more than 1.5 standard deviations from the mean.
+
+```{r}
+
+head(USArrests)
+
+library(data.table)
+
+usarrest_data <- USArrests
+
+states <- data.table("States" = state.name)
+usarrest_data <- cbind(states,usarrest_data)
+
+mean_murder <- mean(usarrest_data$Murder)
+sd_murder <- sd(usarrest_data$Murder)
+
+z_score <- abs((mean_murder-usarrest_data$Murder)/sd_murder) 
+z <- z_score > 1.5
+
+outliers_states <- usarrest_data[z,1] 
+outliers_states
+
+
+# In this problem, first we import the data to usarrest_data variable. Since we don't have the state names in the data we import names from state.name dataset. Later we find the mean and std deviation to calculate z-score so that we can get the outlier states. Finally with the help of z-score we list the states that are >1.5 sd from mean.
+
+```
+
+Question 2 : For the same dataset as in (1), is there a correlation between urban population and murder, i.e., as one goes up, does the other statistic as well? Comment on the strength of the correlation. Calculate the Pearson coefficient of correlation in R.
+
+```{r}
+
+cor.test(usarrest_data$UrbanPop, usarrest_data$Murder)
+
+library(ggpubr)
+ggscatter(usarrest_data, x = "UrbanPop" , y = "Murder" , add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson", xlab = "Urban Population", ylab = "Murder")
+
+# As we can see that the correlation between Urban population and Murder is very low (0.06). Because of this low value, we can observe in the plot that line is slightly positive. So we can conclude that as Urban population increases murder rate also increases but very slowly.
+
+```
+
+Question 3 : Based on the data on the growth of mobile phone use in Brazil (you'll need to copy the data and create a CSV that you can load into R or use the gsheet2tbl() function from the gsheet package), forecast phone use for the next time period using a 2-year weighted moving average (with weights of 5 for the most recent year, and 2 for other), exponential smoothing (alpha of 0.4), and linear regression trendline.
+
+```{r}
+# install.packages("gsheet")
+library(gsheet)
+
+mobile_data <- data.frame(gsheet2tbl("https://docs.google.com/spreadsheets/d/1tOnM9XceK4Ak8tzWQ2vDelWlJexzJiS3LbT6MN6_rW0/edit#gid=0"))
+
+mobile_data <- mobile_data[-12,]
+
+# 2-year weighted average
+
+n <- nrow(mobile_data)
+
+last2 <- mobile_data[c(n,n-1), 2]
+
+weights <- c(5,2)
+
+sw <- w*last2
+
+weighted_average <- sum(sw)/sum(weights)
+
+# Exponential Smoothing with alpha = 0.4
+
+alpha <- 0.4
+
+mobile_data_1$Ft <- 0
+mobile_data_1$E <- 0
+
+mobile_data_1$Ft[1] <- mobile_data_1[1,2]
+
+# F(t) = F(t-1) + a * E(t-1)
+
+for (i in 2:nrow(mobile_data_1)) {
+  mobile_data_1$Ft[i] <- mobile_data_1$Ft[i-1] + alpha * mobile_data_1$E[i-1]
+  mobile_data_1$E[i] <- mobile_data_1[i,2] - mobile_data_1$Ft[i]
+}
+
+forecast_exponential_smoothing <- mobile_data_1$Ft[n] + alpha * mobile_data_1$E[n]
+
+# Linear Regression 
+
+mobile_data_2 <- mobile_data
+
+model <- lm(mobile_data_2$Subscribers ~ mobile_data_2$Year)
+
+summary(model)
+
+print(model)
+
+F.t <- -15710760 + 18276748 * 12 
+
+
+sprintf("2-year Moving Average : %s",weighted_average)
+sprintf("Forecast with Exponential Smoothing : %s",forecast_exponential_smoothing)
+sprintf("Forecast with linear regression : %s",F.t)
+
+```
+
+Question 4 : Calculate the squared error for each model, i.e., use the model to calculate a forecast for each given time period and then the squared error. Finally, calculate the average (mean) squared error for each model. Which model has the smallest mean squared error (MSE)?
+
+```{r}
+
+  
+
+
+
+```
+
