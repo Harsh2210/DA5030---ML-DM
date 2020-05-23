@@ -62,13 +62,15 @@ n <- nrow(mobile_data)
 
 last2 <- mobile_data[c(n,n-1), 2]
 
-weights <- c(5,2)
+weight <- c(5,2)
 
-sw <- w*last2
+sw <- weight*last2
 
-weighted_average <- sum(sw)/sum(weights)
+weighted_average <- sum(sw)/sum(weight)
 
 # Exponential Smoothing with alpha = 0.4
+
+mobile_data_1 <- mobile_data
 
 alpha <- 0.4
 
@@ -81,7 +83,7 @@ mobile_data_1$Ft[1] <- mobile_data_1[1,2]
 
 for (i in 2:nrow(mobile_data_1)) {
   mobile_data_1$Ft[i] <- mobile_data_1$Ft[i-1] + alpha * mobile_data_1$E[i-1]
-  mobile_data_1$E[i] <- mobile_data_1[i,2] - mobile_data_1$Ft[i]
+  mobile_data_1$E[i] <- mobile_data_1$Subscribers[i] - mobile_data_1$Ft[i]
 }
 
 forecast_exponential_smoothing <- mobile_data_1$Ft[n] + alpha * mobile_data_1$E[n]
@@ -109,9 +111,40 @@ Question 4 : Calculate the squared error for each model, i.e., use the model to 
 
 ```{r}
 
-  
+mobile_data_3 <- mobile_data
 
+mobile_data_3$F <- 0
+mobile_data_3$absError <- 0
+
+for (i in 1:nrow(mobile_data_3)) {
+  mobile_data_3$F[i] <- -15710760 + 18276748 * mobile_data_3$Year[i]
+  mobile_data_3$absError[i] <- abs(mobile_data_3$Subscribers[i] - mobile_data_3$F[i])
+}
+
+MSE_lm <- mean(mobile_data_3$absError)
+
+MSE_es <- mean(mobile_data_1$E)
+
+sprintf("Mean Squared Error for Linear Regression : %s",MSE_lm)
+sprintf("Mean Squared Error for Exponential Smoothing : %s",MSE_es)
 
 
 ```
+
+Question 5 : Calculate a weighted average forecast by averaging out the three forecasts calculated in (3) with the following weights: 4 for trend line, 2 for exponential smoothing, 1 for weighted moving average. Remember to divide by the sum of the weights in a weighted average.
+
+```{r}
+
+values <- c(F.t,forecast_exponential_smoothing,weighted_average)
+
+weights <- c(4,2,1)
+
+wv <- values*weights
+
+weighted_average_forecast <- sum(wv)/sum(weights)
+weighted_average_forecast
+
+
+```
+
 
