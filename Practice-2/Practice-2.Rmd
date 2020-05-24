@@ -2,7 +2,9 @@
 title: "Practice-2"
 author: "Harsh"
 date: "17/05/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Question 1 : The built-in dataset USArrests contains statistics about violent crime rates in the US States. Determine which states are outliers in terms of murders. Outliers, for the sake of this question, are defined as values that are more than 1.5 standard deviations from the mean.
@@ -56,17 +58,22 @@ mobile_data <- data.frame(gsheet2tbl("https://docs.google.com/spreadsheets/d/1tO
 
 mobile_data <- mobile_data[-12,]
 
+
+###############
+
 # 2-year weighted average
 
 n <- nrow(mobile_data)
 
 last2 <- mobile_data[c(n,n-1), 2]
-
 weight <- c(5,2)
 
 sw <- weight*last2
 
 weighted_average <- sum(sw)/sum(weight)
+
+
+###############
 
 # Exponential Smoothing with alpha = 0.4
 
@@ -76,6 +83,7 @@ alpha <- 0.4
 
 mobile_data_1$Ft <- 0
 mobile_data_1$E <- 0
+mobile_data_1$sqrdError <- 0
 
 mobile_data_1$Ft[1] <- mobile_data_1[1,2]
 
@@ -84,9 +92,13 @@ mobile_data_1$Ft[1] <- mobile_data_1[1,2]
 for (i in 2:nrow(mobile_data_1)) {
   mobile_data_1$Ft[i] <- mobile_data_1$Ft[i-1] + alpha * mobile_data_1$E[i-1]
   mobile_data_1$E[i] <- mobile_data_1$Subscribers[i] - mobile_data_1$Ft[i]
+  mobile_data_1$sqrdError[i] <- mobile_data_1$E[i] ^ 2
 }
 
 forecast_exponential_smoothing <- mobile_data_1$Ft[n] + alpha * mobile_data_1$E[n]
+
+
+###############
 
 # Linear Regression 
 
@@ -98,12 +110,17 @@ summary(model)
 
 print(model)
 
-F.t <- -15710760 + 18276748 * 12 
+forecast_linear_regression <- -15710760 + 18276748 * 12 
+
+###############
 
 
 sprintf("2-year Moving Average : %s",weighted_average)
 sprintf("Forecast with Exponential Smoothing : %s",forecast_exponential_smoothing)
-sprintf("Forecast with linear regression : %s",F.t)
+sprintf("Forecast with linear regression : %s",forecast_linear_regression)
+
+
+# In this problem we tested 3 types of forecasting methods on the same mobile data. I have duplicated the data for each model so as to avoid overwritting during the calculations. I have removed the last row from the mobile data because it was difficult to forecast using weigthed average method since it requires latest years.
 
 ```
 
@@ -113,21 +130,68 @@ Question 4 : Calculate the squared error for each model, i.e., use the model to 
 
 mobile_data_3 <- mobile_data
 
+
+###############
+
+# MSE Calculation for Linear Regression method
+
 mobile_data_3$F <- 0
 mobile_data_3$absError <- 0
+mobile_data_3$sqrdError <- 0
 
 for (i in 1:nrow(mobile_data_3)) {
   mobile_data_3$F[i] <- -15710760 + 18276748 * mobile_data_3$Year[i]
   mobile_data_3$absError[i] <- abs(mobile_data_3$Subscribers[i] - mobile_data_3$F[i])
+  mobile_data_3$sqrdError[i] <- mobile_data_3$absError[i] ^ 2
 }
 
-MSE_lm <- mean(mobile_data_3$absError)
+###############
 
-MSE_es <- mean(mobile_data_1$E)
+# MSE Calculation for Weighted Average method
+
+mobile_data_4 <- mobile_data
+
+mobile_data_4$Forecast <- 0
+mobile_data_4$Error <- 0
+mobile_data_4$sqrdError <- 0
+
+mobile_data_4$Forecast[1] <- mobile_data_4$Subscribers[1]
+mobile_data_4$Forecast[2] <- mobile_data_4$Subscribers[2]
+
+
+
+for (i in 3:nrow(mobile_data_4)) {
+  last2year <- mobile_data_4$Subscribers[c(i-1,i-2)]
+  weight <- c(5,2)
+  sw1 <- weight*last2year
+  mobile_data_4$Forecast[i] <- sum(sw1)/sum(weight)
+  mobile_data_4$Error[i] <- abs(mobile_data_4$Subscribers[i]-mobile_data_4$Forecast[i])
+  mobile_data_4$sqrdError[i] <- mobile_data_4$Error[i] ^ 2
+}
+
+###############
+
+# Calculation of MSE for all 3 models
+MSE_lm <- mean(mobile_data_3$sqrdError)
+
+MSE_es <- mean(mobile_data_1$sqrdError)
+
+MSE_wa <- mean(mobile_data_4$sqrdError)
 
 sprintf("Mean Squared Error for Linear Regression : %s",MSE_lm)
 sprintf("Mean Squared Error for Exponential Smoothing : %s",MSE_es)
+sprintf("Mean Squared Error for 2-year Weighted Average : %s",MSE_wa)
 
+
+# Table to observe the minimum MSE
+model <- c("2-year Weighted Average", "Exponential Smoothing", "Linear Regression")
+MSE <- c(MSE_wa,MSE_es,MSE_lm)
+min_MSE <- data.frame(model,MSE)
+
+min_MSE[order(MSE),]
+
+
+# In this problem we calculated MSE for all 3 forecasts. Since we calculated the errors for exponential smoothing in previous question we just squared the values there itself and took the mean in this block. Apart from that, we have calculated the errors for weighted average forecast by using the same weights used before i.e (2,5). In the end we can observe the minimum value of MSE is for Linear regression which is shown in the table below. 
 
 ```
 
@@ -135,7 +199,8 @@ Question 5 : Calculate a weighted average forecast by averaging out the three fo
 
 ```{r}
 
-values <- c(F.t,forecast_exponential_smoothing,weighted_average)
+#Calculation of weighted average forecast of the above 3 forecasts 
+values <- c(forecast_linear_regression,forecast_exponential_smoothing,weighted_average)
 
 weights <- c(4,2,1)
 
@@ -144,6 +209,8 @@ wv <- values*weights
 weighted_average_forecast <- sum(wv)/sum(weights)
 weighted_average_forecast
 
+
+# Here we created a new variable called values to store the output of the 3 forecasts which we calculated above. Later we use the new weights and get the weighted_average_forecast by using the same formula which we used before.
 
 ```
 
