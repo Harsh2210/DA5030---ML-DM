@@ -2,36 +2,48 @@
 title: "Practice-3"
 author: "Harsh"
 date: "25/05/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
+
+1. Download the data set for the tutorial.
+2. Follow this tutorial on applying kNN to prostate cancer detection and implement all of the steps in an R Notebook. Make sure to explain each step and what it does.
 
 ```{r}
 
 library(data.table)
 
-cancer_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 3\\prostate_cancer.csv", header = TRUE, stringsAsFactors = FALSE)
+cancer_data <- read.csv("C:\\Users\\Madhav\\Desktop\\Harsh\\Rproj\\prostate_cancer.csv", header = TRUE, stringsAsFactors = FALSE)
 
 head(cancer_data)
 
+#Creating a copy of cancer_data
 cancer_data_1 <- cancer_data
 
+#Deleting the first column which is id 
 cancer_data_1 <- cancer_data_1[-1]
+
+#Checking the total number of patients
+table(cancer_data$diagnosis_result)
 
 setDT(cancer_data_1)
 
+#Creating a Normalize function using min/max method. This helps in 
 normalize <- function(x){
   return((x - min(x)) / (max(x) - min(x)))
 }
 
-str(cancer_data_1)
-
+#Normalizing the values by calling the function with the help of lapply
 cancer_data_1 <- as.data.frame(lapply(cancer_data[,3:9],normalize))
 
 summary(cancer_data_1)
 
+#Dividing the data in 65:35 ratio
 training_data <- cancer_data_1[1:65,]
 testing_data <- cancer_data_1[66:100,]
 
+#Selecting the labels and storing in a new variable
 training_data_labels <- cancer_data[1:65,2]
 testing_data_labels <- cancer_data[66:100,2]
 
@@ -46,12 +58,19 @@ testing_data_labels <- cancer_data[66:100,2]
 library(class)
 library(gmodels)
 
-cancer_pred <- knn(train = training_data, test = testing_data, cl = training_data_labels, k = 6)
+#Using the knn function from the class library. We select the efficient value which is k = 7. We get an accuracy of 71.4% with k = 7 and With k = 10 we get 62%
+cancer_pred_1 <- knn(train = training_data, test = testing_data, cl = training_data_labels, k = 10)
+cancer_pred <- knn(train = training_data, test = testing_data, cl = training_data_labels, k = 7)
 
+CrossTable(x = testing_data_labels, y = cancer_pred_1, prop.chisq = FALSE)
 CrossTable(x = testing_data_labels, y = cancer_pred, prop.chisq = FALSE)
 
 ```
+We get an accuracy of around 60% for k = 10 which is quite low. We try to improve the accuracy by testing with different k values, the best one achieved is for k = 7 i.e 71%.
 
+
+3. Once you've complete the tutorial, try another kNN implementation from another package, such as the caret package. Compare the accuracy of the two implementations.
+4. Try the confusionMatrix function from the caret package to determine the accuracy of both algorithms.
 
 ```{r}
 
@@ -62,28 +81,36 @@ cancer_data$diagnosis_result <- as.factor(cancer_data$diagnosis_result)
 
 set.seed(123)
 
+#Creating new data variables for testing caret package
 train.cancer <- training_data
 train.cancer$diagnosis_result <- as.factor(training_data_labels)
 test.cancer <- testing_data
 test.cancer$diagnosis_result <- as.factor(testing_data_labels)
 
+#Assigning trainControl values to a variable
 trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 
+#Using train function from the caret package to train the model
 knn_fit <- train(diagnosis_result ~., data = train.cancer, method = "knn",
                  trControl=trctrl,
                  preProcess = c("center", "scale"),
                  tuneLength = 10)
 
+#Calling the trained function to get the accuracy of different k values
 knn_fit
 
+#Plotting accuracy vs k values
 plot(knn_fit)
 
+#Testing the model with 35% test data
 test_pred <- predict(knn_fit, newdata = test.cancer)
 test_pred
 
-confusionMatrix(test_pred, test.cancer$diagnosis_result )
+# We get an accuracy of 68.57% for Caret Package
+confusionMatrix(test_pred, test.cancer$diagnosis_result)
 
-confusionMatrix(cancer_pred, testing_data_labels1)
+# We get an accuracy of 71.43% for Class Package
+confusionMatrix(cancer_pred, as.factor(testing_data_labels))
 
 ```
 
