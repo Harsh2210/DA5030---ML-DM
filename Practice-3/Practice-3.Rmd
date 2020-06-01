@@ -114,4 +114,4 @@ confusionMatrix(cancer_pred, as.factor(testing_data_labels))
 
 ```
 
-
+Results of training model are very high for k = 15 which is 88% accuracy but when we test the model with testing data, observed accuracy is very low which is 68% for caret package compared to class package which is 71%.
