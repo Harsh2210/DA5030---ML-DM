@@ -14,7 +14,7 @@ output:
 
 library(data.table)
 
-cancer_data <- read.csv("C:\\Users\\Madhav\\Desktop\\Harsh\\Rproj\\prostate_cancer.csv", header = TRUE, stringsAsFactors = FALSE)
+cancer_data <- read.csv("C:\\Users\\harsh\\Documents\\GitHub\\DA5030-Intro-to-ML-and-DM\\Introduction-to-Machine-learning-and-Data-Mining-DA5030\\Practice-3\\prostate_cancer.csv", header = TRUE, stringsAsFactors = FALSE)
 
 head(cancer_data)
 
