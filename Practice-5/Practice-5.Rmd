@@ -1,0 +1,202 @@
+---
+title: "Practice-5"
+author: "Harsh"
+date: "22/06/2020"
+output: html_document
+---
+
+```{r}
+
+#install.packages("C50")
+#install.packages("RWeka")
+#install.packages("OneR")
+
+library(C50)
+library(gmodels)
+library(RWeka)
+library(OneR)
+
+```
+
+
+```{r}
+
+credit_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 5\\credit.csv", header = TRUE)
+
+head(credit_data)
+str(credit_data)
+
+credit_data$default[credit_data$default == 1] <- "no"
+credit_data$default[credit_data$default == 2] <- "yes"
+
+credit_data$default <- as.factor(credit_data$default)
+
+table(credit_data$checking_balance)
+table(credit_data$savings_balance)
+
+summary(credit_data$months_loan_duration)
+summary(credit_data$amount)
+
+table(credit_data$default)
+
+
+set.seed(12345)
+credit_rand <- credit_data[order(runif(1000)), ]
+
+summary(credit_data$amount)
+summary(credit_rand$amount)
+
+head(credit_data$amount)
+head(credit_rand$amount)
+
+credit_train <- credit_rand[1:900, ]
+credit_test <- credit_rand[901:1000, ]
+
+prop.table(table(credit_train$default))
+prop.table(table(credit_test$default))
+
+credit_model <- C5.0(credit_train[-17], credit_train$default)
+
+credit_model
+
+summary(credit_model)
+
+credit_pred <- predict(credit_model, credit_test)
+
+CrossTable(credit_test$default, credit_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+
+
+credit_boost10 <- C5.0(credit_train[-17], credit_train$default,
+trials = 10)
+
+summary(credit_boost10)
+
+credit_boost_pred10 <- predict(credit_boost10, credit_test)
+
+CrossTable(credit_test$default, credit_boost_pred10, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+
+
+error_cost <- matrix(c(0, 1, 4, 0), nrow = 2)
+
+credit_cost <- C5.0(credit_train[-17], credit_train$default, costs = error_cost)
+
+credit_cost_pred <- predict(credit_cost, credit_test)
+
+CrossTable(credit_test$default, credit_cost_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+
+```
+
+
+```{r}
+
+mushroom_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 5\\mushrooms.csv", stringsAsFactors = TRUE)
+
+str(mushroom_data)
+
+mushroom_data$veil_type <- NULL
+
+table(mushroom_data$type)
+
+mushroom_1R <- OneR(type ~ ., data = mushroom_data)
+
+mushroom_1R
+
+summary(mushroom_1R)
+
+mushroom_JRip <- JRip(type ~ ., data = mushroom_data)
+
+mushroom_JRip
+
+```
+
+
+Problem 3 :
+
+kNN:
+1. KNN is a non-parametric model and supports non-linear solutions.
+2. It is easy to implement but is quite slow. Large computation cost during runtime if sample size is large. Because of which it is known as lazy learning algorithm.
+3. Usually Euclidean distance is used to calculate distances. Manhattan distance, Hamming Distance, Minkowski distance are different alternatives.
+4. Two types of rescaling methods can be used for kNN which are min-max normalization and z-score normalization.
+5. It can be used as both regression as well as classification. Class package is used to implement kNN.
+
+
+Naive Bayes:
+1. Naive bayes is parametric. And compared to kNN it is faster.
+2. It is based on Naive Bayes probabilistic approach.
+3. Most common application is text classification.
+4. It makes use of frequency tables for each and every word with the help of document2matrix function.
+5. Laplace estimator helps in reducing the error in classification as it assigns one additional count to frequency table which makes each feature non-zero.
+6. corpus function is used to remove unwanted characters from the document.
+
+
+C5.0 Decision Trees:
+1. C5.0 decision trees makes use of the features to create new decisions. It follows divide and conquer approach.
+2. It uses only the most important features from the dataset.
+3. C5.0 decision tree models are often biased toward splits on features having a large number of levels
+4. One of the disadvantage is that trees can continue to grow indefinitely, choosing splitting features and dividing into smaller and smaller partitions which makes it harder to interpret.
+5. C5.0 uses entropy for measuring purity.
+
+
+RIPPER Rules:
+1. Rule learners are generally applied to problems where the features are primarily or entirely nominal
+2. It is efficient for large and noisy datasets
+3. Compared to decision trees, rule learners create simpler models.
+4. It doesn't work with numeric data. Features have to be categorical.
+5. Rule learners like RIPPER, separate-and-conquer data to identify logical if-else rules.
+
+
+
+Problem 4 :
+
+Ensemble methods are meta-algorithms that combine several machine learning techniques into one predictive model in order to decrease variance (bagging) and bias (boosting).
+
+Boosting :
+1. Boosting is used to increase performance by adding more weak learners.
+2. It uses ensembles of models trained on resampled data and a vote to determine the final prediction.
+3. In Boosting, each tree attempts to minimize the errors of previous tree.
+4. Every new subsets contains the elements that were misclassified by previous models.
+5. Sometimes, it tends to over-fit a model.
+6. In some test cases it is proven to be better than bagging.
+7. Example of boosting is gradient boosting.
+
+Bagging :
+1. Bagging is used when our goal is to reduce the variance of a decision tree.
+2. It consists of each model in the ensemble vote with equal weight.
+3. Multiple subsets are created from the original dataset, selecting observations with replacement. A weak model is created on each of these subsets. 
+4. Each model is trained individually, and combined using an averaging process.
+5. For Classification either the most voted class is accepted (hard-voting), or the highest average of all the class probabilities is taken as the output (soft-voting).
+6. Bagging is used when we have an over-fitting problem for a single model.
+7. Example of bagging is random forest.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
