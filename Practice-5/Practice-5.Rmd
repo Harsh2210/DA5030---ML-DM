@@ -2,11 +2,13 @@
 title: "Practice-5"
 author: "Harsh"
 date: "22/06/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r}
-
+#Calling all libraries
 #install.packages("C50")
 #install.packages("RWeka")
 #install.packages("OneR")
@@ -18,99 +20,124 @@ library(OneR)
 
 ```
 
+Problem 1: Build an R Notebook of the bank loan decision tree example in the textbook on pages 135 to 148; the CSV file is available for download below. Show each step and add appropriate documentation. Note that the provided dataset uses values 1 and 2 in default column whereas the book has no and yes in the default column. 
 
 ```{r}
 
+#Importing Credit data
 credit_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 5\\credit.csv", header = TRUE)
 
+#Exploring data by observing the structure and first 6 rows of the data
 head(credit_data)
 str(credit_data)
 
+#Replacing 1 and 2 with 'no' and 'yes' for default column
 credit_data$default[credit_data$default == 1] <- "no"
 credit_data$default[credit_data$default == 2] <- "yes"
 
+#Converting default column to factor
 credit_data$default <- as.factor(credit_data$default)
 
+#Counting total number of checkings and savings balance
 table(credit_data$checking_balance)
 table(credit_data$savings_balance)
 
+#Checking the mean min max of the loan duration and amount
 summary(credit_data$months_loan_duration)
 summary(credit_data$amount)
 
+#Counting total number of participants who were considered as default
 table(credit_data$default)
 
-
+#Random number generation and storing random data based on the numbers generated
 set.seed(12345)
 credit_rand <- credit_data[order(runif(1000)), ]
 
+#Comparing the mean min max for random data and original data
 summary(credit_data$amount)
 summary(credit_rand$amount)
 
+#Comparing random data and original data
 head(credit_data$amount)
 head(credit_rand$amount)
 
+#Creating training and testing dataset by splitting the random data
 credit_train <- credit_rand[1:900, ]
 credit_test <- credit_rand[901:1000, ]
 
+#Checking the distribution of training and testing dataset
 prop.table(table(credit_train$default))
 prop.table(table(credit_test$default))
 
+#Building the Classifier model with training data
 credit_model <- C5.0(credit_train[-17], credit_train$default)
 
+#We observe that the tree has made 57 decisions
 credit_model
 
+#Summary shows all the decisions made
 summary(credit_model)
 
+#Testing the accuracy of the model on the testing data
 credit_pred <- predict(credit_model, credit_test)
 
+#Calculating the accuracy. We observe that the false rate of the model is 25%
 CrossTable(credit_test$default, credit_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
 
-
-credit_boost10 <- C5.0(credit_train[-17], credit_train$default,
-trials = 10)
-
+#Improving performance by boosting method in which we set trail as 10
+credit_boost10 <- C5.0(credit_train[-17], credit_train$default,trials = 10)
 summary(credit_boost10)
 
+#Testing the boosted model on the testing data
 credit_boost_pred10 <- predict(credit_boost10, credit_test)
 
+#Calculating the accuracy of the model
 CrossTable(credit_test$default, credit_boost_pred10, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
 
+#The false rate is reduced from 25% to 21% for boosted model
 
+#Cost matrix for measuring the error cost
 error_cost <- matrix(c(0, 1, 4, 0), nrow = 2)
 
+#Calculating the false rate by using cost in the function.
 credit_cost <- C5.0(credit_train[-17], credit_train$default, costs = error_cost)
-
 credit_cost_pred <- predict(credit_cost, credit_test)
-
 CrossTable(credit_test$default, credit_cost_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+#We recieve false rate as 35%
 
 ```
 
+Problem 2: Build and R Notebook of the poisonous mushrooms example using rule learners in the textbook on pages 160 to 168. Show each step and add appropriate documentation. The CSV file is available below. If you have issues with the RWeka package on MacOS, consider using a Windows computer, RStudio.cloud or skip this question.
 
 ```{r}
 
+#Importing mushroom data using read.csv() function
 mushroom_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 5\\mushrooms.csv", stringsAsFactors = TRUE)
 
+#Exploring mushroom data
 str(mushroom_data)
 
+#Since veil_type provides no meaningful information we remove it
 mushroom_data$veil_type <- NULL
 
+#Counting types of mushromms
 table(mushroom_data$type)
 
+#Using OneR() rule learner to classify the mushroom
 mushroom_1R <- OneR(type ~ ., data = mushroom_data)
-
 mushroom_1R
 
+#Observing the accuracy of the model
 summary(mushroom_1R)
 
+#Using Ripper algorithm to classify the mushroom type
 mushroom_JRip <- JRip(type ~ ., data = mushroom_data)
-
 mushroom_JRip
 
+#Ripper algorithm is better compared to OneR as it considers many features.
 ```
 
-
-Problem 3 :
+Problem 3: So far we have explored four different approaches to classification: kNN, Naive Bayes, C5.0 Decision Trees, and RIPPER Rules. Comment on the differences of the algorithms and when each is generally used. Provide examples of when they work well and when they do not work well. Add your comments to your R Notebook. Be specific and explicit; however, no code examples are needed.
 
 kNN:
 1. KNN is a non-parametric model and supports non-linear solutions.
@@ -144,9 +171,7 @@ RIPPER Rules:
 4. It doesn't work with numeric data. Features have to be categorical.
 5. Rule learners like RIPPER, separate-and-conquer data to identify logical if-else rules.
 
-
-
-Problem 4 :
+Problem 4: Much of our focus so far has been on building a single model that is most accurate. In practice, data scientists often construct multiple models and then combine them into a single prediction model. This is referred to as a model ensemble. Two common techniques for assembling such models are boosting and bagging. Do some research and define what model ensembles are, why they are important, and how boosting and bagging function in the construction of assemble models. Be detailed and provide references to your research. You can use this excerpt from Kelleher, MacNamee, and D'Arcy, Fundamentals of Machine Learning for Predictive Data Analytics as a starting point. This book is an excellent resource for those who want to dig deeper into data mining and machine learning.
 
 Ensemble methods are meta-algorithms that combine several machine learning techniques into one predictive model in order to decrease variance (bagging) and bias (boosting).
 
@@ -167,36 +192,3 @@ Bagging :
 5. For Classification either the most voted class is accepted (hard-voting), or the highest average of all the class probabilities is taken as the output (soft-voting).
 6. Bagging is used when we have an over-fitting problem for a single model.
 7. Example of bagging is random forest.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
