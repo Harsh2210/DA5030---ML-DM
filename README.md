@@ -4,3 +4,4 @@
 - Practice 2 : Study of different types of Forecasting methods
 - Practice 3 : Implementation of kNN classification algorithm
 - Practice 4 : Implementation of Naive Bayes algorithm
+- Practice 5 : Study and Implementation of Decision trees
