@@ -1,0 +1,152 @@
+---
+title: "Practice-6"
+author: "Harsh"
+date: "29/06/2020"
+output: pdf_document
+---
+
+```{r}
+
+library(psych)
+library(caret)
+
+```
+
+
+
+```{r}
+
+student_math <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 6\\student-mat.csv",header = TRUE, sep = ';')
+
+head(student_math)
+
+cor(student_math[c("age", "absences", "G1", "G2", "G3")])
+
+pairs(student_math[c("age", "absences", "G1", "G2", "G3")])
+
+pairs.panels(student_math[c("age", "absences", "G1", "G2", "G3")])
+
+
+```
+
+
+```{r}
+
+summary(student_math)
+
+math_features <- student_math[,c(2,14,16,17,18,23,24,25,29,30,31,32,33)]
+
+math_features$sex <- as.factor(math_features$sex)
+math_features$schoolsup <- as.factor(math_features$schoolsup)
+math_features$famsup <- as.factor(math_features$famsup)
+math_features$paid <- as.factor(math_features$paid)
+math_features$romantic <- as.factor(math_features$romantic)
+
+math_g3_pred <- lm(G3~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data = math_features)
+
+summary(math_g3)
+
+```
+
+
+```{r}
+
+step(math_g3_pred, direction = "backward")
+
+new_math_g3_pred <- lm(G3~schoolsup+romantic+famrel+absences+G1+G2, data = math_features)
+
+summary(new_math_g3_pred)
+
+```
+
+
+```{r}
+
+SE <- 1.884
+
+sample_data_CI <- student_math[395,]
+sample_data_CI
+
+CI_pred <- predict(new_math_g3_pred, sample_data_CI)
+
+lower_CI <- unname(CI_pred - (1.96 * SE))
+upper_CI <- unname(CI_pred + (1.96 * SE))
+
+lower_CI
+upper_CI
+
+```
+
+
+```{r}
+
+model <- lm(G3~., data = student_math)
+
+RMSE <- sqrt(mean(model$residuals^2))
+
+RMSE
+
+```
+
+
+```{r}
+
+student_math_PF <- student_math
+
+student_math_PF$PF <- ifelse(student_math_PF$G3 < 10, "F", "P")
+
+student_math_PF$PF <- as.factor(student_math_PF$PF)
+
+head(student_math_PF)
+
+table(student_math_PF$PF)
+
+```
+
+
+```{r}
+
+glm_pred <- glm(PF~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data=student_math_PF, family="binomial")
+
+summary(glm_pred)
+
+step(glm_pred, direction="backward")
+
+glm_pred_new <- glm(PF~studytime+romantic+famrel+G2, data=student_math_PF, family="binomial")
+
+summary(glm_pred_new)
+
+
+```
+
+
+```{r}
+
+glm_pred <- glm(PF~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data=student_math_PF, family="binomial")
+
+glm_pred_new <- glm(PF~studytime+romantic+famrel+G2, data=student_math_PF, family="binomial")
+
+```
+
+
+
+```{r}
+
+glm_predict <- round(predict(glm_pred_new, newdata= student_math_PF, type="response"),0)
+student_math_PF$glm_predict <- unname(glm_predict)
+
+student_math_PF$PF <- as.numeric(ifelse(student_math_PF$PF == "F", 0, 1))
+
+confusionMatrix(table(student_math_PF$glm_predict, student_math_PF$PF))
+
+```
+
+
+
+
+
+
+
+
+
+
