@@ -2,28 +2,48 @@
 title: "Practice-6"
 author: "Harsh"
 date: "29/06/2020"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r}
+#Importing all libraries required
+
+#install.packages("rpart")
+#install.packages("rpart.plot")
 
 library(psych)
 library(caret)
+library(rpart)
+library(rpart.plot)
+library(RWeka)
 
 ```
 
+Problem 1: Download the data set on student achievement in secondary education math education of two Portuguese schools (use the data set Students Math).
 
+1. Create scatter plots and pairwise correlations between age, absences, G1, and G2 and final grade (G3) using the pairs.panels() function in R.
+2. Build a multiple regression model predicting final math grade (G3) using as many features as you like but you must use at least four. Include at least one categorical variables and be sure to properly convert it to dummy codes. Select the features that you believe are useful -- you do not have to include all features.
+3. Using the model from (2), use stepwise backward elimination to remove all non-significant variables and then state the final model as an equation. State the backward elimination measure you applied (p-value, AIC, Adjusted R2). This tutorial shows how to use various feature elimination techniques.
+4. Calculate the 95% confidence interval for a prediction -- you may choose any data you wish for some new student.
+5. What is the RMSE for this model -- use the entire data set for both training and validation. You may find the residuals() function useful. Alternatively, you can inspect the model object, e.g., if your model is in the variable m, then the residuals (errors) are in m$residuals and your predicted values (fitted values) are in m$fitted.values.
 
 ```{r}
 
+#Importing student Data
 student_math <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 6\\student-mat.csv",header = TRUE, sep = ';')
 
+#Exploring Data
 head(student_math)
 
+#Checking the correlation between different features of the data
 cor(student_math[c("age", "absences", "G1", "G2", "G3")])
 
+#Scatter plot between different features 
 pairs(student_math[c("age", "absences", "G1", "G2", "G3")])
 
+#Pair.panel function is used to plot histogram and it provides correlation between different features
 pairs.panels(student_math[c("age", "absences", "G1", "G2", "G3")])
 
 
@@ -32,29 +52,36 @@ pairs.panels(student_math[c("age", "absences", "G1", "G2", "G3")])
 
 ```{r}
 
+#Exploratory analysis of student_math data
 summary(student_math)
 
+#Selecting relevant features
 math_features <- student_math[,c(2,14,16,17,18,23,24,25,29,30,31,32,33)]
 
+#Converting categorical variables to dummy codes using factor
 math_features$sex <- as.factor(math_features$sex)
 math_features$schoolsup <- as.factor(math_features$schoolsup)
 math_features$famsup <- as.factor(math_features$famsup)
 math_features$paid <- as.factor(math_features$paid)
 math_features$romantic <- as.factor(math_features$romantic)
 
+#Multiple regression model using lm() function. Observed R-squared values is 0.8356 
+#and we see that the p-values is quite low
 math_g3_pred <- lm(G3~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data = math_features)
-
-summary(math_g3)
+summary(math_g3_pred)
 
 ```
 
 
 ```{r}
 
+#Using backward step elimination method to remove non-significant features. 
+#We see that out of 12 features 6 have been removed because of low AIC
 step(math_g3_pred, direction = "backward")
 
+#Testing multiple regression model for new selected features. 
+#We observe that the R-squared values has reduced from 0.8356 to 0.8334 but the p-value remains the same.
 new_math_g3_pred <- lm(G3~schoolsup+romantic+famrel+absences+G1+G2, data = math_features)
-
 summary(new_math_g3_pred)
 
 ```
@@ -62,43 +89,63 @@ summary(new_math_g3_pred)
 
 ```{r}
 
+#As we observed in the above model that the residual standard error is 1.884, 
+#we assign this to a new variable
 SE <- 1.884
 
+#We select a test data for prediction
 sample_data_CI <- student_math[395,]
 sample_data_CI
 
+#Using test sample to predict the G3 grade for row 395
 CI_pred <- predict(new_math_g3_pred, sample_data_CI)
 
+#Calculating upper and lower boundary for 95% confidence interval
 lower_CI <- unname(CI_pred - (1.96 * SE))
 upper_CI <- unname(CI_pred + (1.96 * SE))
 
+#As we can see that predicted value lies in between the upper and 
+#lower boundaries of 95% confidence interval
+CI_pred
 lower_CI
 upper_CI
+
 
 ```
 
 
 ```{r}
-
+#Calculating RMSE value for whole data. 
+#We use residual function to get the error values.
 model <- lm(G3~., data = student_math)
 
 RMSE <- sqrt(mean(model$residuals^2))
-
 RMSE
 
 ```
 
+Problem 2 : For this problem, the following short tutorial might be helpful in interpreting the logistic regression output.
+
+1. Using the same data set as in Problem (1), add another column, PF -- pass-fail. Mark any student whose final grade is less than 10 as F, otherwise as P and then build a dummy code variable for that new column. Use the new dummy variable column as the response variable.
+2. Build a binomial logistic regression model classifying a student as passing or failing. Eliminate any non-significant variable using an elimination approach of your choice. Use as many features as you like but you must use at least four -- choose the ones you believe are most useful.
+3. State the regression equation.
+4. What is the accuracy of your model? Use the entire data set for both training and validation.
 
 ```{r}
 
+#Creating a duplicate of student_math dataset
 student_math_PF <- student_math
 
+#Creating a new column of pass and fail
 student_math_PF$PF <- ifelse(student_math_PF$G3 < 10, "F", "P")
 
+#Converting the categorical variable to dummy code using as.factor() function
 student_math_PF$PF <- as.factor(student_math_PF$PF)
 
+#Exploring new data 
 head(student_math_PF)
 
+#Counting total elements in PF column
 table(student_math_PF$PF)
 
 ```
@@ -106,42 +153,134 @@ table(student_math_PF$PF)
 
 ```{r}
 
+#Binomial logistic regression of pass or fail using selected relevant features
 glm_pred <- glm(PF~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data=student_math_PF, family="binomial")
 
+#We observe that the AIC of the model is 153.92
 summary(glm_pred)
 
+#Using backward elimination method to remove irrelevant features. 
+#We observe that out of 12 features we are left with 4 significant features
 step(glm_pred, direction="backward")
 
+#Testing model with new features
 glm_pred_new <- glm(PF~studytime+romantic+famrel+G2, data=student_math_PF, family="binomial")
 
+#We see that AIC has reduced to 144.68 from 153.92 
 summary(glm_pred_new)
 
+#a <- anova(glm_pred, glm_pred_new)
 
 ```
+
+Regression equations: 
+
+1. glm_pred <- glm(PF~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data=student_math_PF, family="binomial")
+
+2. glm_pred_new <- glm(PF~studytime+romantic+famrel+G2, data=student_math_PF, family="binomial")
 
 
 ```{r}
 
-glm_pred <- glm(PF~sex+studytime+schoolsup+famsup+paid+romantic+famrel+freetime+health+absences+G1+G2, data=student_math_PF, family="binomial")
-
-glm_pred_new <- glm(PF~studytime+romantic+famrel+G2, data=student_math_PF, family="binomial")
-
-```
-
-
-
-```{r}
-
+#Testing the accuracy of the model by using the PF column as response
 glm_predict <- round(predict(glm_pred_new, newdata= student_math_PF, type="response"),0)
 student_math_PF$glm_predict <- unname(glm_predict)
 
 student_math_PF$PF <- as.numeric(ifelse(student_math_PF$PF == "F", 0, 1))
 
+#The observed accuracy of the model is 92.66%
 confusionMatrix(table(student_math_PF$glm_predict, student_math_PF$PF))
 
 ```
 
 
+Problem 3 : 
+1. Implement the example from the textbook on pages 205 to 217 for the data set on white wines.
+2. Calculate the RMSE for the model.
+
+```{r}
+
+#Importing wine dataset
+wine_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 6\\whitewines.csv")
+
+#Exploring wine data
+str(wine_data)
+
+#We can see the data is normally distributed where 5-6 are the most common values
+hist(wine_data$quality)
+
+#Splitting the data into training and testing dataset
+wine_train <- wine_data[1:3750,]
+wine_test <- wine_data[3751:4898,]
+
+#Using rpart function for generating classification tree of wine dataset 
+#where quality is selected as independent variable
+model <- rpart(quality ~ ., data = wine_train)
+model
+
+#Summary provides details of each and every node and 
+#number of observations present in the specific node
+summary(model)
+
+#rpart.plot function is used to plot the classification tree
+rpart.plot(model, digits = 3)
+
+#fallen.leaves parameter forces the leaf nodes to be aligned at the 
+#bottom of the plot, while the type and extra parameters affect the
+#way the decisions and nodes are labeled
+rpart.plot(model, digits = 4, fallen.leaves = TRUE, type = 3, extra = 101)
+
+#Testing the rpart model using testing data
+predict <- predict(model, wine_test)
+
+#Based on the observation we see that the extreme cases are not handled properly 
+#as the max value for both variables vary
+summary(predict)
+summary(wine_test$quality)
+
+#Correlation between predicted and acutal quality compares how well 
+#the prediction has taken place
+cor(predict, wine_test$quality)
+
+#Mean absolute error function 
+MAE <- function(actual, predicted) 
+{
+  mean(abs(actual - predicted))
+}
+
+#Calculating MAE for the predicted model
+MAE(predict, wine_test$quality)
+
+#Mean of quality rating
+mean(wine_train$quality)
+
+#Checking error for 5.88 i.e mean value
+MAE(5.88, wine_test$quality)
+
+#For some reason the model performance did not improve. The values observed were a bit insignificant. 
+m5p <- M5P(quality ~ ., data = wine_train)
+summary(m5p)
+
+#Evaluation of model using testing data
+p.m5p <- predict(m5p, wine_test)
+summary(p.m5p)
+
+cor(p.m5p, wine_test$quality)
+
+#The MAE of the model was a bit off. The observed value is 118.68 
+#which is huge compared to the above model
+MAE(wine_test$quality, p.m5p)
+
+#RMSE function
+RMSE <- function(actual, pred) 
+{
+  return(sqrt(sum(actual-pred)^2/length(actual)))
+}
+
+#The RMSE error of the model was observed as 4002.081 which means the model is broken
+RMSE(wine_test$quality, p.m5p)
+
+```
 
 
 
