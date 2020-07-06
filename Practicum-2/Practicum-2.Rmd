@@ -1,0 +1,315 @@
+---
+title: "Practicum-2"
+author: "Harsh"
+date: "02/07/2020"
+output: pdf_document
+---
+
+```{r}
+
+#install.packages("naivebayes")
+
+library(ggplot2)
+library(psych)
+library(caret)
+library(klaR)
+library(naivebayes)
+library(e1071)
+
+```
+
+
+
+```{r}
+
+census_data <- read.table("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\adult.data",sep = ",", stringsAsFactors = FALSE)
+
+names(census_data) <- c("age","workclass","fnlwgt","education","education_num","martial_status","occupation","relationship","race","sex","capital_gain","capital_loss","hours_per_week","native_country", "Class")
+
+```
+
+
+```{r}
+
+head(census_data)
+
+str(census_data)
+
+#which(is.na(census_data))
+
+ggplot(census_data, aes(x= sex,fill= sex))+geom_bar()+xlab("Sex")+ylab("Total Count")
+
+pairs.panels(census_data[c(1,3,5,11,12,13)])
+
+table(census_data$workclass)
+table(census_data$education)
+table(census_data$martial_status)
+table(census_data$occupation)
+table(census_data$relationship)
+table(census_data$race)
+table(census_data$sex)
+table(census_data$native_country)
+table(census_data$Class)
+
+# We observe that an unknown character '?' is present for the following categorical variables workclass,occupation,nativecountry
+
+getmode <- function(v) 
+{
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+census_data[census_data == ' ?'] <- NA
+
+census_data$workclass[is.na(census_data$workclass)] <- getmode(census_data$workclass)
+census_data$occupation[is.na(census_data$occupation)] <- getmode(census_data$occupation)
+census_data$native_country[is.na(census_data$native_country)] <- getmode(census_data$native_country)
+
+census_data[32562,1] <- as.integer(35)
+census_data[32562,c(2,4,9,10,14)] <- c(" Local-gov"," Doctorate"," White", " Female"," Portugal")
+str(census_data)
+
+```
+
+
+```{r}
+
+quantile(census_data$age)
+
+census_data$age <- as.factor(ifelse(census_data$age >=17 & census_data$age < 28, '1', ifelse(census_data$age >=28 & census_data$age < 37, '2',ifelse(census_data$age >=37 & census_data$age < 48, '3','4'))))
+
+census_data$education <- as.factor(census_data$education)
+census_data$workclass <- as.factor(census_data$workclass)
+census_data$sex <- as.factor(census_data$sex)
+census_data$race <- as.factor(census_data$race)
+census_data$native_country <- as.factor(census_data$native_country)
+census_data$Class <- as.factor(census_data$Class)
+
+test <- census_data[32562,c(1,2,4,9,10,14)]
+
+census_data <- census_data[-32562,]
+
+set.seed(101)
+
+index <- createDataPartition(census_data$Class, p=0.75, list = FALSE, times = 1)
+training_data <- census_data[index, ]
+testing_data <- census_data[-index, ]
+
+str(testing_data)
+str(training_data)
+
+```
+
+
+```{r}
+
+klar_nb <- klaR::NaiveBayes(Class~age+education+workclass+sex+race+native_country, data = training_data)
+
+naiveBayes_nb <- naivebayes::naive_bayes(Class~age+education+workclass+sex+race+native_country, data = training_data, laplace = 1)
+
+e1071_nb <- e1071::naiveBayes(Class~age+education+workclass+sex+race+native_country, data = training_data)
+
+ensemble_model <- function(data){
+  
+  prediction_klar <- predict(klar_nb, data)[[1]]
+  prediction_naive <- predict(naiveBayes_nb,data)
+  prediction_e1071 <- predict(e1071_nb,data)
+  
+ Output <- data.frame("klaR" = prediction_klar, "NaiveBayes" = prediction_naive, "E1071" = prediction_e1071, "Major_Vote" = as.factor(ifelse(prediction_klar ==' >50K' & prediction_naive==' >50K',' >50K',ifelse(prediction_klar==' >50K' & prediction_e1071==' >50K',' >50K',ifelse(prediction_naive==' >50K' & prediction_e1071==' >50K',' >50K',' <=50K')))))
+
+ return(Output)   
+}
+
+ensemble_model(testing_data[,c(1,2,4,9,10,14)])
+
+```
+
+
+
+```{r}
+
+log_reg <- glm(Class~age+education+workclass+sex+race+native_country, data = training_data, family = binomial(link = "logit"))
+
+ensemble_model <- function(data){
+  
+  prediction_klar <- predict(klar_nb, data)[[1]]
+  prediction_naive <- predict(naiveBayes_nb,data)
+  prediction_e1071 <- predict(e1071_nb,data)
+  prediction_log <- ifelse(predict(log_reg, data,type = "response") < 0.5, " <=50K"," >50K")
+  
+ Output <- data.frame("klaR" = prediction_klar, "NaiveBayes" = prediction_naive, "E1071" = prediction_e1071,"LogisticRegression" = prediction_log, "Major_Vote" = as.factor(ifelse(prediction_klar == ' >50K' & prediction_naive == ' >50K' & prediction_e1071 == ' >50K', ' >50K', ifelse(prediction_klar == ' >50K' & prediction_naive == ' >50K' & prediction_log == ' >50K', ' >50K', ifelse(prediction_naive == ' >50K' & prediction_e1071 == ' >50K' & prediction_log == ' >50K', ' >50K', ' <=50K')))))
+
+ return(Output)   
+}
+
+ensemble_model(testing_data[,c(1,2,4,9,10,14)])
+
+ensemble_model(test)
+
+
+```
+
+```{r}
+
+prediction <- predict(klar_nb, testing_data[,c(1,2,4,9,10,14)])
+table(prediction$class, testing_data$Class)
+confusionMatrix(table(prediction$class, testing_data$Class))
+
+prediction_naive <- predict(naiveBayes_nb, testing_data[,c(1,2,4,9,10,14)])
+table(prediction_naive, testing_data$Class)
+confusionMatrix(table(prediction_naive, testing_data$Class))
+
+prediction_e1071 <- predict(e1071_nb, testing_data[,c(1,2,4,9,10,14)])
+table(prediction_e1071, testing_data$Class)
+confusionMatrix(table(prediction_e1071, testing_data$Class))
+
+log_predict <- round(predict(log_reg, newdata = testing_data, type = "response"),0)
+log_predict_new <- unname(log_predict)
+table(log_predict_new, as.numeric(ifelse(testing_data$Class == " <=50K",0,1)))
+confusionMatrix(table(log_predict_new, as.numeric(ifelse(testing_data$Class == " <=50K",0,1))))
+
+
+klar_acc <- (5633+851)/8140*100
+naiveBayes_acc <- (5635+851)/8140*100
+e1071_acc <- (5633+851)/8140*100
+logistic_acc <- (5764+759)/8140*100
+
+klar_acc
+naiveBayes_acc
+e1071_acc
+logistic_acc
+
+```
+
+
+
+
+```{r}
+
+cars_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\car_data.csv",stringsAsFactors = TRUE)
+
+names(cars_data)[names(cars_data) == "ï..Price"] <- "Price"
+
+str(cars_data)
+
+head(cars_data)
+
+summary(cars_data)
+
+pairs.panels(cars_data)
+
+
+```
+
+
+```{r}
+
+boxplot(cars_data$Price)
+boxplot(cars_data$Mileage)
+boxplot(cars_data$Cylinder)
+boxplot(cars_data$Liter)
+boxplot(cars_data$Doors)
+boxplot(cars_data$Cruise)
+boxplot(cars_data$Sound)
+
+cars_outlier <- cars_data
+for (i in c(1,2,4,5,6,7,8,9))
+  {
+    mean_data <- mean(cars_outlier[,i])
+    sd_data <- sd(cars_outlier[,i])
+    zscore <- (cars_outlier[,i]-mean_data)/sd_data
+    cars_outlier[which(!(zscore>3)),i] = NA
+    print(which(is.na(cars_outlier[,i])==FALSE))
+    }
+cars_outlier
+
+cars_data_new <- cars_data
+
+cars_data_new[c(81,160,159,158,157,156,155,154,153,152,151),1] <- mean(cars_data_new[,1],na.rm = TRUE)
+cars_data_new[c(680,650),2] <- mean(cars_data_new[,2],na.rm = TRUE)
+
+cars_data_new[c(81,160,159,158,157,156,155,154,153,152,151),1] <- NA
+cars_data_new[c(680,650),2] <- NA
+
+
+```
+
+
+```{r}
+
+pairs.panels(cars_data_new)
+
+hist(cars_data$Price)
+hist(cars_data$Mileage)
+
+hist(cars_data_new$Price)
+hist(cars_data_new$Mileage)
+hist(cars_data_new$Cylinder)
+hist(cars_data_new$Liter)
+hist(cars_data_new$Doors)
+hist(cars_data_new$Cruise)
+hist(cars_data_new$Sound)
+hist(cars_data_new$Leather)
+
+summary(na.exclude(cars_data_new$Price))
+summary(na.exclude(log2(cars_data_new$Price)))
+hist(log2(cars_data_new$Price))
+
+summary(na.exclude(cars_data_new$Liter))
+summary(na.exclude(log2(cars_data_new$Liter)))
+hist(log2(cars_data_new$Liter))
+
+```
+
+
+```{r}
+
+cor(cars_data[1],cars_data[c(-1,-3)])
+
+cor(cars_data[-3])
+
+```
+
+```{r}
+
+set.seed(101)
+
+index <- createDataPartition(cars_data$Make, p=0.75, list = FALSE, times = 1)
+cars_training_data <- cars_data[index, ]
+cars_testing_data <- cars_data[-index, ]
+
+```
+
+
+```{r}
+
+cars_pred <- lm(Price~.,data = cars_data)
+summary(cars_pred)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
