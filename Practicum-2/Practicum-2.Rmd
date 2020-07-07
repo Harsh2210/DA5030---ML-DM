@@ -186,7 +186,7 @@ logistic_acc
 
 ```{r}
 
-cars_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\car_data.csv",stringsAsFactors = TRUE)
+cars_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\car_data.csv",stringsAsFactors = FALSE)
 
 names(cars_data)[names(cars_data) == "ï..Price"] <- "Price"
 
@@ -198,6 +198,21 @@ summary(cars_data)
 
 pairs.panels(cars_data)
 
+
+cars_data[805,2] <- as.integer(61435)
+cars_data[805,3] <- as.character("SAAB")
+cars_data[805,4] <- as.integer(4)
+cars_data[805,5] <- as.numeric(2.3)
+cars_data[805,6] <- as.integer(4)
+cars_data[805,7] <- as.integer(1)
+cars_data[805,8] <- as.integer(1)
+cars_data[805,9] <- as.integer(1)
+
+cars_data$Make <- as.factor(cars_data$Make)
+
+sample <- cars_data[805,]
+
+cars_data <- cars_data[-805,]
 
 ```
 
@@ -217,7 +232,7 @@ for (i in c(1,2,4,5,6,7,8,9))
   {
     mean_data <- mean(cars_outlier[,i])
     sd_data <- sd(cars_outlier[,i])
-    zscore <- (cars_outlier[,i]-mean_data)/sd_data
+    zscore <- abs((cars_outlier[,i]-mean_data)/sd_data)
     cars_outlier[which(!(zscore>3)),i] = NA
     print(which(is.na(cars_outlier[,i])==FALSE))
     }
@@ -251,13 +266,21 @@ hist(cars_data_new$Cruise)
 hist(cars_data_new$Sound)
 hist(cars_data_new$Leather)
 
+#Cylinder, Doors, Cruise, Leather, Sound are categorical no need for distribution transformation. And Mileage is normally distributed so we apply the log transformations only to Liter and Price
+
 summary(na.exclude(cars_data_new$Price))
 summary(na.exclude(log2(cars_data_new$Price)))
-hist(log2(cars_data_new$Price))
+hist(log10(cars_data_new$Price))
 
-summary(na.exclude(cars_data_new$Liter))
-summary(na.exclude(log2(cars_data_new$Liter)))
-hist(log2(cars_data_new$Liter))
+cars_data_new$Price <- log10(cars_data_new$Price)
+skewness(cars_data_new$Price,na.rm = TRUE)
+
+#summary(na.exclude(cars_data_new$Liter))
+#summary(na.exclude(log2(cars_data_new$Liter)))
+#hist(log2(cars_data_new$Liter))
+
+#cars_data_new$Liter <- log2(cars_data_new$Liter)
+
 
 ```
 
@@ -267,6 +290,8 @@ hist(log2(cars_data_new$Liter))
 cor(cars_data[1],cars_data[c(-1,-3)])
 
 cor(cars_data[-3])
+
+corrplot::corrplot(cor(cars_data[-3]))
 
 ```
 
@@ -278,19 +303,67 @@ index <- createDataPartition(cars_data$Make, p=0.75, list = FALSE, times = 1)
 cars_training_data <- cars_data[index, ]
 cars_testing_data <- cars_data[-index, ]
 
+cars_new_training <- cars_data_new[index,]
+cars_new_testing <- cars_data_new[-index,]
+
+cars_new_training <- na.exclude(cars_new_training)
+cars_new_testing <- na.exclude(cars_new_testing)
+
 ```
 
 
 ```{r}
 
-cars_pred <- lm(Price~.,data = cars_data)
+cars_pred <- lm(Price~.,data = cars_training_data)
 summary(cars_pred)
 
+```
+
+```{r}
+
+cars_new_pred <- lm(Price~. , data = cars_new_training)
+summary(cars_new_pred)
+
+cars_new_pred <- lm(Price~ Mileage+Make+Cylinder+Liter+Doors+Sound+Leather, data = cars_new_training)
+summary(cars_new_pred)
+
+cars_new_pred <- lm(Price~ Mileage+Make+Cylinder+Liter+Doors+Sound, data = cars_new_training)
+summary(cars_new_pred)
+
+cars_new_pred <- lm(Price~ Mileage+Make+Cylinder+Liter+Doors, data = cars_new_training)
+summary(cars_new_pred)
 
 
 ```
 
 
+
+```{r}
+
+cars_pred$coefficients
+
+cars_new_pred$coefficients
+
+
+```
+
+
+
+```{r}
+
+sample
+
+sale_pred <- predict(cars_pred, sample)
+sale_pred_new <- predict(cars_new_pred,sample)
+
+sale_pred <- unname(sale_pred)
+sale_pred_new <- unname(sale_pred_new)
+sale_pred_new <- 10^(sale_pred_new)
+
+sale_pred
+sale_pred_new
+
+```
 
 
 
