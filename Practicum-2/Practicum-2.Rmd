@@ -5,7 +5,9 @@ date: "02/07/2020"
 output: pdf_document
 ---
 
+
 ```{r}
+#Installing and Importing all libraries
 
 #install.packages("naivebayes")
 
@@ -18,29 +20,50 @@ library(e1071)
 
 ```
 
+                                                ----- Problem 1 -----
+
+
+1. Download the data set Census Income Data for Adults along with its explanation. Note that the data file does not contain header names; you may wish to add those. The description of each column can be found in the data set explanation. 
+
+- Importing data using read.table since the data is in text format and we use separator as ','
+- Since headers are not mentioned we provide them by using names function.
 
 
 ```{r}
-
+#Importing Dataset
 census_data <- read.table("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\adult.data",sep = ",", stringsAsFactors = FALSE)
 
+#Assigning column names
 names(census_data) <- c("age","workclass","fnlwgt","education","education_num","martial_status","occupation","relationship","race","sex","capital_gain","capital_loss","hours_per_week","native_country", "Class")
 
 ```
 
 
+2. Explore the data set as you see fit and that allows you to get a sense of the data and get comfortable with it. 
+
+- We explore the dataset using head and str function.
+- Plotting 'sex' variable gives us an understanding of how many male and female genders are present in the dataset.
+- Pair.panels function is used on all numeric features. We observe that age, fnlwgt and hours_per_week are normally distributed but they left skewwed.
+- We see that education_num and capital_gain have a comparatively high correlation.
+- Table function is used on each column to observe different types of elements present and total count present.
+- We see that '?' element is present for workclass, occupation and native_country which seems to be a missing/error value so we remove it and impute using mode method. 
+
+
 ```{r}
 
+#Exploring Dataset
 head(census_data)
-
 str(census_data)
 
 #which(is.na(census_data))
 
+#Plotting sex variable
 ggplot(census_data, aes(x= sex,fill= sex))+geom_bar()+xlab("Sex")+ylab("Total Count")
 
+#Observing correlation and histogram of all numeric column
 pairs.panels(census_data[c(1,3,5,11,12,13)])
 
+#Counting total elements present in each column
 table(census_data$workclass)
 table(census_data$education)
 table(census_data$martial_status)
@@ -51,8 +74,7 @@ table(census_data$sex)
 table(census_data$native_country)
 table(census_data$Class)
 
-# We observe that an unknown character '?' is present for the following categorical variables workclass,occupation,nativecountry
-
+# We observe that an unknown character '?' is present for the following categorical variables workclass,occupation,native_country
 getmode <- function(v) 
 {
   uniqv <- unique(v)
@@ -60,24 +82,28 @@ getmode <- function(v)
 }
 
 census_data[census_data == ' ?'] <- NA
-
 census_data$workclass[is.na(census_data$workclass)] <- getmode(census_data$workclass)
 census_data$occupation[is.na(census_data$occupation)] <- getmode(census_data$occupation)
 census_data$native_country[is.na(census_data$native_country)] <- getmode(census_data$native_country)
 
+```
+
+- Creating a sample test case needed for problem 7.
+- Converting age to categorical variable using ifelse conditions
+- Converting all categorical variables to factors
+
+```{r}
+
+#Creating Test case needed for problem 7
 census_data[32562,1] <- as.integer(35)
 census_data[32562,c(2,4,9,10,14)] <- c(" Local-gov"," Doctorate"," White", " Female"," Portugal")
 str(census_data)
 
-```
-
-
-```{r}
-
+#Getting the range for categorical distribution of age
 quantile(census_data$age)
-
 census_data$age <- as.factor(ifelse(census_data$age >=17 & census_data$age < 28, '1', ifelse(census_data$age >=28 & census_data$age < 37, '2',ifelse(census_data$age >=37 & census_data$age < 48, '3','4'))))
 
+#Converting all categorical variables to factors
 census_data$education <- as.factor(census_data$education)
 census_data$workclass <- as.factor(census_data$workclass)
 census_data$sex <- as.factor(census_data$sex)
@@ -85,30 +111,53 @@ census_data$race <- as.factor(census_data$race)
 census_data$native_country <- as.factor(census_data$native_country)
 census_data$Class <- as.factor(census_data$Class)
 
+#Test case for problem 7
 test <- census_data[32562,c(1,2,4,9,10,14)]
-
 census_data <- census_data[-32562,]
 
+```
+
+
+3. Split the data set 75/25 so you retain 25% for testing using random sampling. 
+
+- Partitioning data using caret package.
+- Splitting data in 75-25% using p = 0.75
+
+
+```{r}
+
+#Setting seed to 101 for getting random values
 set.seed(101)
 
+#Creating index of partitioned data and assigning to training and testing data
 index <- createDataPartition(census_data$Class, p=0.75, list = FALSE, times = 1)
 training_data <- census_data[index, ]
 testing_data <- census_data[-index, ]
 
+#Exploring testing and training dataset
 str(testing_data)
 str(training_data)
 
 ```
 
 
+4. Using the Naive Bayes Classification algorithm from the KlaR, naivebayes, and e1071 packages, build an ensemble classifier that predicts whether an individual earns more than or less than US$50,000. Only use the features age, education, workclass, sex, race, and native-country. Ignore any other features in your model. You need to transform continuous variables into categorical variables by binning (use equal size bins from in to max). Note that some packages might not work with your current version of R and may need to be downgraded.
+
+- Using klaR, naiveBayes and e1071 libraries to create predition objects using training data
+- Creating an ensemble model by using majority prediction method.
+- Testing the ensemble model on testing dataset
+
+
 ```{r}
 
+#Creating klaR, naiveBayes and e1071 predictors
 klar_nb <- klaR::NaiveBayes(Class~age+education+workclass+sex+race+native_country, data = training_data)
 
 naiveBayes_nb <- naivebayes::naive_bayes(Class~age+education+workclass+sex+race+native_country, data = training_data, laplace = 1)
 
 e1071_nb <- e1071::naiveBayes(Class~age+education+workclass+sex+race+native_country, data = training_data)
 
+#Creating an ensemble model using majority prediction method
 ensemble_model <- function(data){
   
   prediction_klar <- predict(klar_nb, data)[[1]]
@@ -120,16 +169,27 @@ ensemble_model <- function(data){
  return(Output)   
 }
 
+#Testing the model on testing data
 ensemble_model(testing_data[,c(1,2,4,9,10,14)])
 
 ```
 
 
+5. Create a full logistic regression model of the same features as in (4) (i.e., do not eliminate any features regardless of p-value). Be sure to either use dummy coding for categorical features or convert them to factor variables and ensure that the glm function does the dummy coding.
+
+6. Add the logistic regression model to the ensemble built in (4).
+
+- Using glm for creating logistic regression model by selecting all features
+- Adding the logistic model to the above ensemble model
+- Testing the new ensemble model using testing dataset
+
 
 ```{r}
 
+#Creating a logistic regression model using glm function
 log_reg <- glm(Class~age+education+workclass+sex+race+native_country, data = training_data, family = binomial(link = "logit"))
 
+#Updating ensemble model by adding logistic regression
 ensemble_model <- function(data){
   
   prediction_klar <- predict(klar_nb, data)[[1]]
@@ -142,62 +202,106 @@ ensemble_model <- function(data){
  return(Output)   
 }
 
+#Testing new ensemble model
 ensemble_model(testing_data[,c(1,2,4,9,10,14)])
-
-ensemble_model(test)
-
 
 ```
 
+
+7. Using the ensemble model from (6), predict whether a 35-year-old white female adult who is a local government worker with a doctorate who immigrated from Portugal earns more or less than US$50,000. 
+
+- Using the test object created before for predicting the output
+- Based on the ensemble model we can say that the female adult earns less than 50K salary
+
+
 ```{r}
 
+#Test case created before
+test
+
+#Predicting output for the test case
+ensemble_model(test)
+
+```
+
+
+8.  Calculate accuracy and prepare confusion matrices for all three Bayes implementations (KlaR, naivebayes, e1071) and the logistic regression model. Compare the implementations and comment on differences. Be sure to use the same training data set for all three. The results should be the same but they may differ if the different implementations deal differently with LaPalace Estimators.
+
+- We use table function to get the total number of true positive and true negative predictions
+- We calculate the accuracy with the help of true positive and true negative values
+- COnfusionMatrix function is used to get the accuracy of the model
+- We see that for klaR and e1071 we get the same accuracy which is 79.65602%, for naiveBayes we get an increased accuracy of 79.68059% since we use laplace estimators. Out of all 4 models logistic regression model performs the best with an accuracy of 80.13514%
+
+
+```{r}
+
+#Predicting the accuracy of the klaR model by using testing dataset
 prediction <- predict(klar_nb, testing_data[,c(1,2,4,9,10,14)])
 table(prediction$class, testing_data$Class)
 confusionMatrix(table(prediction$class, testing_data$Class))
 
+#Predicting the accuracy of the naiveBayes model by using testing dataset
 prediction_naive <- predict(naiveBayes_nb, testing_data[,c(1,2,4,9,10,14)])
 table(prediction_naive, testing_data$Class)
 confusionMatrix(table(prediction_naive, testing_data$Class))
 
+#Predicting the accuracy of the e1071 model by using testing dataset
 prediction_e1071 <- predict(e1071_nb, testing_data[,c(1,2,4,9,10,14)])
 table(prediction_e1071, testing_data$Class)
 confusionMatrix(table(prediction_e1071, testing_data$Class))
 
+#Predicting the accuracy of the logistic regression model by using testing dataset
 log_predict <- round(predict(log_reg, newdata = testing_data, type = "response"),0)
 log_predict_new <- unname(log_predict)
 table(log_predict_new, as.numeric(ifelse(testing_data$Class == " <=50K",0,1)))
 confusionMatrix(table(log_predict_new, as.numeric(ifelse(testing_data$Class == " <=50K",0,1))))
 
-
+#Calculating accuracy of each model by using the true positive and negative values from the table function
 klar_acc <- (5633+851)/8140*100
 naiveBayes_acc <- (5635+851)/8140*100
 e1071_acc <- (5633+851)/8140*100
 logistic_acc <- (5764+759)/8140*100
 
-klar_acc
-naiveBayes_acc
-e1071_acc
-logistic_acc
+Accuracy <- data.frame("klaR" = klar_acc, "naiveBayes" = naiveBayes_acc, "e1071" = e1071_acc, "Logistic Regression" = logistic_acc)
+
+Accuracy
 
 ```
 
 
+                                                ----- Problem 2 -----
 
+1. Load and then explore the data set on car sales referenced by the article Shonda Kuiper (2008) Introduction to Multiple Regression: How Much Is Your Car Worth?
+
+- Importing cars dataset and exploring the dataset
+- We use head and str function to explore the structure of the dataset
+- Pairs.panels function is used to observe the correlations and histogram of all the columns present
+- 
 
 ```{r}
 
+#Importing cars dataset
 cars_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-2\\car_data.csv",stringsAsFactors = FALSE)
 
+#Renaming the first column
 names(cars_data)[names(cars_data) == "ï..Price"] <- "Price"
 
+#Exploring dataset
 str(cars_data)
-
 head(cars_data)
-
 summary(cars_data)
 
+#Plotting 
 pairs.panels(cars_data)
 
+```
+
+
+- Creating a sample test cases needed for problem 2.9
+- Converting categorical variable to factor
+
+
+```{r}
 
 cars_data[805,2] <- as.integer(61435)
 cars_data[805,3] <- as.character("SAAB")
@@ -215,6 +319,7 @@ sample <- cars_data[805,]
 cars_data <- cars_data[-805,]
 
 ```
+
 
 
 ```{r}
@@ -247,6 +352,8 @@ cars_data_new[c(81,160,159,158,157,156,155,154,153,152,151),1] <- NA
 cars_data_new[c(680,650),2] <- NA
 
 
+
+
 ```
 
 
@@ -269,7 +376,7 @@ hist(cars_data_new$Leather)
 #Cylinder, Doors, Cruise, Leather, Sound are categorical no need for distribution transformation. And Mileage is normally distributed so we apply the log transformations only to Liter and Price
 
 summary(na.exclude(cars_data_new$Price))
-summary(na.exclude(log2(cars_data_new$Price)))
+summary(na.exclude(log10(cars_data_new$Price)))
 hist(log10(cars_data_new$Price))
 
 cars_data_new$Price <- log10(cars_data_new$Price)
@@ -297,7 +404,7 @@ corrplot::corrplot(cor(cars_data[-3]))
 
 ```{r}
 
-set.seed(101)
+set.seed(1)
 
 index <- createDataPartition(cars_data$Make, p=0.75, list = FALSE, times = 1)
 cars_training_data <- cars_data[index, ]
@@ -321,8 +428,8 @@ summary(cars_pred)
 
 ```{r}
 
-cars_new_pred <- lm(Price~. , data = cars_new_training)
-summary(cars_new_pred)
+cars_new_pred_all <- lm(Price~. , data = cars_new_training)
+summary(cars_new_pred_all)
 
 cars_new_pred <- lm(Price~ Mileage+Make+Cylinder+Liter+Doors+Sound+Leather, data = cars_new_training)
 summary(cars_new_pred)
@@ -342,7 +449,26 @@ summary(cars_new_pred)
 
 cars_pred$coefficients
 
-cars_new_pred$coefficients
+sales_Leather_0 <- 15996.6970249 - 0.1764495 *(mean(cars_training_data$Mileage))-448.5432987*mean(cars_training_data$Cylinder)+ 4950.9249821*mean(cars_training_data$Liter)-1713.3570585*mean(cars_training_data$Doors)-353.2058696*mean(cars_training_data$Cruise)+147.1521336*mean(cars_training_data$Sound)+16.8108822*0
+
+sales_Leather_1 <- 15996.6970249 - 0.1764495 *(mean(cars_training_data$Mileage))-448.5432987*mean(cars_training_data$Cylinder)+ 4950.9249821*mean(cars_training_data$Liter)-1713.3570585*mean(cars_training_data$Doors)-353.2058696*mean(cars_training_data$Cruise)+147.1521336*mean(cars_training_data$Sound)+16.8108822*1
+
+sales_Leather_1 - sales_Leather_0
+
+#(16194.9124775-2116.2757394-1835.3805325+14636.3226561-2190.9756008/5)*mean(as.numeric(cars_data$Make))
+
+
+
+
+cars_new_pred_all$coefficients
+
+sales_Leather_0 <- 4.128939e+00 - 3.616950e-06 *(mean(cars_new_training$Mileage,na.rm = TRUE))-2.008246e-02*mean(cars_new_training$Cylinder)+ 1.159595e-01*mean(cars_new_training$Liter)-1.286700e-02*mean(cars_new_training$Doors)+5.907329e-03*mean(cars_new_training$Cruise)-3.802867e-03*mean(cars_new_training$Sound)+3.405001e-03*0
+
+sales_Leather_1 <- 4.128939e+00 - 3.616950e-06 *(mean(cars_new_training$Mileage,na.rm = TRUE))-2.008246e-02*mean(cars_new_training$Cylinder)+ 1.159595e-01*mean(cars_new_training$Liter)-1.286700e-02*mean(cars_new_training$Doors)+5.907329e-03*mean(cars_new_training$Cruise)-3.802867e-03*mean(cars_new_training$Sound)+3.405001e-03*1
+
+#(1.988794e-01-5.956311e-02-3.422311e-02+2.835467e-01-5.560221e-02/5)*mean(as.numeric(cars_data_new$Make))
+
+10^(sales_Leather_1 - sales_Leather_0)
 
 
 ```
@@ -353,19 +479,20 @@ cars_new_pred$coefficients
 
 sample
 
-sale_pred <- predict(cars_pred, sample)
-sale_pred_new <- predict(cars_new_pred,sample)
+sale_pred <- predict(cars_pred, sample, interval = "confidence")
+sale_pred_new <- predict(cars_new_pred,sample, interval = "confidence")
 
 sale_pred <- unname(sale_pred)
 sale_pred_new <- unname(sale_pred_new)
 sale_pred_new <- 10^(sale_pred_new)
 
+sale_pred <- data.frame("Predicted value" = sale_pred[1], "Lower Bound" = sale_pred[2], "Upper Bound" = sale_pred[3])
+sale_pred_new <- data.frame("Predicted value" = sale_pred_new[1], "Lower Bound" = sale_pred_new[2], "Upper Bound" = sale_pred_new[3])
+
 sale_pred
 sale_pred_new
 
 ```
-
-
 
 
 
