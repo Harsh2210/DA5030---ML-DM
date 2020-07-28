@@ -1,0 +1,123 @@
+---
+title: "Practicum-3"
+author: "Harsh"
+date: "26/07/2020"
+output: pdf_document
+---
+
+```{r}
+#install.packages("fastDummies")
+
+library(fastDummies)
+library(caret)
+library(psych)
+library(neuralnet)
+library(kernlab)
+library(ROCR)
+library(e1071)
+library(pROC)
+
+```
+
+
+
+```{r}
+
+bank_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-3\\bank-additional-full.csv", sep = ';',stringsAsFactors = TRUE)
+
+head(bank_data)
+str(bank_data)
+summary(bank_data)
+
+#pairs.panels(bank_data[,c(1,11,12,13,14,16,17,18,19,20)])
+
+for (i in c(1,11,12,13,14,16,17,18,19,20)){
+  hist((bank_data[,i]))
+}
+
+hist(log10(bank_data$age))
+hist(log2(bank_data$duration))
+
+for (i in 1:ncol(bank_data)){
+  if(is.factor( bank_data[,i] )){
+    bank_data[,i] <- as.numeric(bank_data[,i])
+  }
+}
+
+str(bank_data)
+
+```
+
+
+```{r}
+
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+bank_data[,-21] <- lapply(bank_data[,-21], normalize)
+bank_data[,21] <- as.factor(bank_data[,21])
+
+summary(bank_data)
+str(bank_data)
+
+index <- createDataPartition(bank_data$y, p=0.75, list = FALSE, times = 1)
+training_data <- bank_data[index, ]
+testing_data <- bank_data[-index, ]
+
+svm_classifier <- ksvm(y ~ ., data = training_data,prob.model=TRUE,kernel="rbfdot")
+
+prediction <- predict(svm_classifier, testing_data)
+
+head(prediction)
+
+confusionMatrix(prediction,testing_data$y)
+
+roc_svm <- roc(as.numeric(prediction),as.numeric(testing_data$y))
+auc(roc_svm)
+
+```
+
+
+```{r}
+
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+bank_norm <- bank_data
+#Normalizing whole concrete dataset
+bank_norm[,c(1,11,12,13,14,16,17,18,19,20)] <- as.data.frame(lapply(bank_data[,c(1,11,12,13,14,16,17,18,19,20)], normalize))
+
+dummy <-dummyVars("~.",data=bank_norm, fullRank = T)
+bank_norm <- data.frame(predict(dummy, newdata = bank_norm))
+
+summary(bank_data$age)
+summary(bank_norm$age)
+
+index <- createDataPartition(bank_norm$y, p=0.75, list = FALSE, times = 1)
+norm_train <- bank_norm[index, ]
+norm_test <- bank_norm[-index, ]
+
+n <- names(bank_norm)
+f <- as.formula(paste("y.yes ~", paste(n[!n %in% "y.yes"], collapse = " + ")))
+
+neuralnet_classifier <- neuralnet(f, data = norm_train, linear.output = FALSE)
+
+model_results <- compute(neuralnet_classifier, norm_test)
+pa <- model_results$net.result
+
+cor(pa,norm_test$y.yes)
+
+pred_nn <- ifelse(pa > 0.5,1,0)
+confusionMatrix(as.factor(pred_nn),as.factor(norm_test$y.yes))
+
+rocnn <- pROC::roc(pred_nn,norm_test$y.yes)
+pROC::auc(rocnn)
+
+
+```
+
+
+
+
