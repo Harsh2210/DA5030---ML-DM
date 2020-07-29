@@ -1,0 +1,193 @@
+---
+title: "Practicum-3"
+author: "Harsh"
+date: "26/07/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+
+#Importing Libraries
+library(caret)
+library(psych)
+library(neuralnet)
+library(kernlab)
+library(ROCR)
+library(pROC)
+
+```
+
+                                        ---Problem 1---
+
+1. Download the data set Bank Marketing Data Set. Note that the data file does not contain header names; you may wish to add those. The description of each column can be found in the data set explanation. Use the bank-additional-full.csv data set. Select an appropriate subset for testing. Use bank-additional.csv if your computer cannot process the full data set.
+2. Explore the data set as you see fit and that allows you to get a sense of the data and get comfortable with it. Is there distributional skew in any of the features? Is there a need to apply a transform? 
+
+- Importing dataset using read.csv
+- Using head,str and summary we verify whether there are any NA present or not
+- To check the skewness first I used pairs.panels but images are short so cannot make any analysis
+- So I plot histogram for each numerical feature and observed skewness for age and duration
+- I used Log transform to adjust the skewness
+- I converted all variables to numeric so that it is easy to use in neural network model
+
+```{r}
+
+#Importing Dataset
+bank_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practicum-3\\bank-additional-full.csv", sep = ';',stringsAsFactors = TRUE)
+
+#Exploratory Analysis
+head(bank_data)
+str(bank_data)
+summary(bank_data)
+pairs.panels(bank_data[,c(1,11,12,13,14,16,17,18,19,20)])
+
+#Plotting Histogram to see the distribution of the data and skewness
+for (i in c(1,11,12,13,14,16,17,18,19,20)){
+  hist((bank_data[,i]))
+}
+
+#Transforming Age and Duration data using Log transform
+#It is fairly normal after transformation
+hist(log10(bank_data$age))
+hist(log2(bank_data$duration))
+
+#Converting all factor datatype to numeric for neural network model
+for (i in 1:ncol(bank_data)){
+  if(is.factor( bank_data[,i] )){
+    bank_data[,i] <- as.numeric(bank_data[,i])
+  }
+}
+
+#Verifying structure of data
+str(bank_data)
+
+#Normalizing the dataset using min-max normalization
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+#Factorizing last predictor column and normalizing other numeric features
+bank_data[,-21] <- lapply(bank_data[,-21], normalize)
+bank_data[,21] <- as.factor(bank_data[,21])
+
+#Verifying normalization of data
+summary(bank_data)
+str(bank_data)
+
+```
+
+3. Build a classification model using a support vector machine that predicts if a bank customer will open a term deposit account.
+
+- First I split the data using createDataPartition function
+- Splitting is done in 75:25 ratio
+- USing ksvm function from kernlab with rbfdot as kernel. I built the svm model
+- Using confusionMatrix, I observed an accuracy of 90%
+
+```{r}
+
+#Spliting dataset into training and testing for the models.
+#Split ratio is 75:25
+index <- createDataPartition(bank_data$y, p=0.75, list = FALSE, times = 1)
+training_data <- bank_data[index, ]
+testing_data <- bank_data[-index, ]
+
+#Using ksvm() function from kernlab with rbfdot as kernel
+svm_classifier <- ksvm(y ~ ., data = training_data,prob.model=TRUE,kernel="rbfdot")
+
+#Predicting test cases as probability model
+prediction <- predict(svm_classifier, testing_data, type = "probabilities")
+
+#Predicted output
+head(prediction)
+
+#Predicted output dataframe
+prediction_prob <- as.data.frame(prediction)
+colnames(prediction_prob) <- c("No_prob", "Yes_prob")
+pred_svm <- ifelse(prediction_prob$No_prob > 0.5,1,2)
+
+#Checking accuracy of the model using ConfusionMatrix
+#We get accuracy as 90.82%
+confusionMatrix(as.factor(pred_svm),as.factor(testing_data$y))
+
+```
+
+4. Build another classification model using a neural network that also predicts if a bank customer will open a term deposit account.
+
+- First I converted the predictor feature to numeric as factors didn't work for Neuralnet
+- Using neuralnet function, I built the model
+- Using compute function, I predicted the output
+- Since confusionMatrix does not work for neuralnet, I checked the correlation
+  between predictor and predicted values and observed that correlation is 62% which is quite less.
+- Finally, I plotted the neural network using plot function
+
+```{r}
+
+#Checking structure of predictor column
+str(training_data$y)
+str(testing_data$y)
+
+#Converting to numeric for neural network model
+training_data$y <- as.numeric(training_data$y)
+testing_data$y <- as.numeric(testing_data$y)
+
+#Using neuralnet function for building neural network
+neuralnet_classifier <- neuralnet(y~., data = training_data)
+
+#Using compute function for making predictions
+nn_predictions <- compute(neuralnet_classifier, testing_data[1:20])
+net_results <- nn_predictions$net.result
+
+#Checking the correlation of both predictor and predicted values
+cor(net_results,testing_data$y)
+
+#Plotting the neural network
+plot(neuralnet_classifier)
+
+```
+
+5. Compare the accuracy of the two models based on AUC.
+
+- Using pROC package, I plotted the AUC plots.
+- One strange thing I observed is that, for SVM we got accuracy of 90% but AUC came out as 79%.
+- I am assuming it is not correct but I tried different methods too, such as predicting without probability model.
+- For that accuracy went down even more, So I assusmed 79% is fair range.
+- Later for Neural network, observed AUC is pretty good which is 92% 
+
+```{r}
+
+#Checking AUC using plot.roc function from pROC package
+roc_svm <- roc(as.numeric(pred_svm),testing_data$y)
+roc_nn <- roc(testing_data$y,as.numeric(net_results))
+
+plot.roc(roc_svm,print.auc = TRUE)
+plot.roc(roc_nn,print.auc = TRUE)
+
+```
+
+6. Calculate precision and recall for both models. See this article to understand how to calculate these metrics.
+
+- Using functions from caret package I calculated the precision and recall for both models.
+- Precision for SVM came out to be 93% whereas for NN it was 94%
+- Recall for SVM came out as 98% and for NN it was 96%
+
+```{r}
+
+#Precision and Recall for SVM
+precision_svm <- posPredValue(as.factor(pred_svm), as.factor(testing_data$y), positive="1")
+recall_svm <- sensitivity(as.factor(pred_svm), as.factor(testing_data$y), positive="1")
+
+pred_nn <- net_results
+pred_nn <- ifelse(pred_nn>1.5, 2, 1)
+
+#Precision and Recall for neural network
+precision_NN <- posPredValue(as.factor(pred_nn), as.factor(testing_data$y), positive="1")
+recall_NN <- sensitivity(as.factor(pred_nn), as.factor(testing_data$y), positive="1")
+
+sprintf("Precision for SVM: %s",precision_svm)
+sprintf("Precision for Neural Network: %s",precision_NN)
+sprintf("Recall for SVM: %s",recall_svm)
+sprintf("Recall for Neural Network: %s",recall_NN)
+
+```

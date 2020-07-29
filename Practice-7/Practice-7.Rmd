@@ -2,11 +2,16 @@
 title: "Practice-7"
 author: "Harsh"
 date: "11/07/2020"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 
 ```{r}
+
+#Importing all packages
 
 #install.packages("neuralnet")
 #install.packages("arules")
@@ -16,145 +21,204 @@ library(arules)
 
 ```
 
-
+Problem 1: Build an R Notebook of the concrete strength example in the textbook on pages 232 to 239. Show each step and add appropriate documentation.
 
 ```{r}
 
+#Importing Concrete dataset
 concrete_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 7\\concrete.csv")
 
+#Exploring Dataset
 head(concrete_data)
-
 str(concrete_data)
+summary(concrete_data)
 
 ```
 
 
 ```{r}
 
+#Normalization function
 normalize <- function(x) {
   return((x - min(x)) / (max(x) - min(x)))
 }
 
+#Normalizing whole concrete dataset
 concrete_norm <- as.data.frame(lapply(concrete_data, normalize))
 
+#Verifying whether normalization is correct or not
 summary(concrete_norm$strength)
 summary(concrete_data$strength)
 
 ```
 
+- In Neural Network function we provide number of hidden layers which make the predictions 
+- On increasing the number of hidden elements we observed that correlation increased from 0.7191 to 0.8122
+- Since number of hidden elements increase the computation time also increases
 
 ```{r}
 
+#Splitting Data into training and testing dataset
 concrete_train <- concrete_norm[1:773, ]
 concrete_test <- concrete_norm[774:1030, ]
 
+#Using the neuralnet function on training dataset with strength as main prediction variable
 concrete_model <- neuralnet(strength ~ cement + slag + ash + water + superplastic + coarseagg + fineagg + age, data = concrete_train)
 
+#Plotting the neural network using plot
 plot(concrete_model)
 
+#Instead of predict we use compute for neural networks
 model_results <- compute(concrete_model, concrete_test[1:8])
 
+#Storing predicted values in a new variable
 predicted_strength <- model_results$net.result
 
+#To evaluate the performance we check the correlation of the model against prediction labels
 cor(predicted_strength, concrete_test$strength)
 
+#Improving model performance by using 5 hidden layers instead of 1
 concrete_model2 <- neuralnet(strength ~ cement + slag + ash + water + superplastic + coarseagg + fineagg + age,data = concrete_train, hidden = 5)
 
+#Again visualizing new model with 5 hidden layers
 plot(concrete_model2)
 
+#Testing the model with testing dataset
 model_results2 <- compute(concrete_model2, concrete_test[1:8])
 
+#Storing predicted values
 predicted_strength2 <- model_results2$net.result
 
+#Performance evaluation of the new improved model
 cor(predicted_strength2, concrete_test$strength)
 
 ```
 
+Problem 2: Build an R Notebook of the optical character recognition example in the textbook on pages 249 to 257. Show each step and add appropriate documentation.
+
+
+- In SVM classification model we test two function which is linear and rbf functions
+- We observe that rbf function better compared to linear model as the accuracy increases 
+  from 0.83 to 0.93 when we use rbf function
 
 ```{r}
 
-
+#Importing letters dataset
 letters_data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 7\\letterdata.csv")
 
+#Exploring letters dataset
 head(letters_data)
-
 str(letters_data)
+summary(letters_data)
 
+#Splitting letters data into training and testing dataset
 letters_train <- letters_data[1:16000, ]
 letters_test <- letters_data[16001:20000, ]
 
+#Using svm algorithm on training dataset
+#We implement a linear svm model so we use kernel as vanilladot
 letter_classifier <- ksvm(letter ~ ., data = letters_train,
 kernel = "vanilladot")
 
+#It provides the training error which is 0.13 in this case and total number of support vectors
 letter_classifier
 
+#Performance evaluation using testing dataset
 letter_predictions <- predict(letter_classifier, letters_test)
 
+#Predicted values
 head(letter_predictions)
 
+#Calculating the accuracy of the model using table
 table(letter_predictions, letters_test$letter)
 
+#Simpler way to calculate accuracy by counting total correct predictions with letter column
 agreement <- letter_predictions == letters_test$letter
-
 table(agreement)
 
+#Calculating probability of error
 prop.table(table(agreement))
 
+#Improving performance of the model by using radial basis function i.e. rbfdot
 letter_classifier_rbf <- ksvm(letter ~ ., data = letters_train,
 kernel = "rbfdot")
 
+#Making predictions for new model
 letter_predictions_rbf <- predict(letter_classifier_rbf,
 letters_test)
 
+#Calculating accuracy of the new model
 agreement_rbf <- letter_predictions_rbf == letters_test$letter
-
 table(agreement_rbf)
-
 prop.table(table(agreement_rbf))
 
 ```
 
+Problem 3: Build an R Notebook of the grocery store transactions example in the textbook on pages 266 to 284. Show each step and add appropriate documentation.
+
 
 ```{r}
 
+#Importing groceries data as transactions
+#We use transactions instead of read.csv as we transactions create matrix of the dataset
 groceries_data <- read.transactions("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Practice 7\\groceries.csv", sep = ",") 
 
+#Exploring dataset
 summary(groceries_data)
-
 inspect(groceries_data[1:5])
 
+#Item frequency gives probabilities of types of objects present in the dataset
 itemFrequency(groceries_data[, 1:3])
 
+#Plotting frequency chart of all elements where support is 0.1
 itemFrequencyPlot(groceries_data, support = 0.1)
 
+#Plotting frequency chart of top 20 elements
 itemFrequencyPlot(groceries_data, topN = 20)
 
+#Image is used to plot the sparse matrix of elements
+# Sample the data provides a better visual plot of the dataset
 image(groceries_data[1:5])
-
 image(sample(groceries_data, 100))
 
+#Using default apriori rules on the dataset 
+#Default values for apriori has support = 0.1 and confidence of 0.8 with minlen as 1 
+#which means minimum required items
 apriori(groceries_data)
 
+#We change the default rules of apriori and test on the sparse dataset
 groceryrules <- apriori(groceries_data, parameter = list(support =
 0.006, confidence = 0.25, minlen = 2))
 
+#We see that for new model we have 463 rules implied 
 groceryrules
 
+#Exploring new model entities
 summary(groceryrules)
 
+#Observing output using inspect
+#We can deduce that people who buy pot plants will buy whole milk
+#with a confidence of 0.40 and support of 0.0069 
+#i.e. it considered 0.69 percent of transaction
 inspect(groceryrules[1:3])
 
+#By using sort we can observe rules with maximum lift first
+#lift helps in deducing that people who buy herbs are almost 4 times likely to buy root vegetables 
 inspect(sort(groceryrules, by = "lift")[1:5])
 
+#Creating a new subset of all elements with berries in it
+#This helps in observing rules for only single product
 berryrules <- subset(groceryrules, items %in% "berries")
 
+#Performance evaluation of berry model
 inspect(berryrules)
 
+#Storing new rules to a csv file called groceryrules.csv
 write(groceryrules, file = "groceryrules.csv",
 sep = ",", quote = TRUE, row.names = FALSE)
 
+#Converting rules to data frame
 groceryrules_df <- as(groceryrules, "data.frame")
-
 str(groceryrules_df)
 
 ```
