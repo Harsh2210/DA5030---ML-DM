@@ -2,8 +2,13 @@
 title: "Project"
 author: "Harsh"
 date: "25/07/2020"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
+
+- Importing all required libraries
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -35,10 +40,16 @@ library(Metrics)
 library(OneR)
 library(tm)
 library(wordcloud)
+library(RColorBrewer)
 
 ```
 
 1. Data Acquisition
+
+- For Importing data, I have used read.csv function.
+- Using head function, I observed first few rows of the data
+- Since almost all the features are categorical, I have kept stringsAsFactors = True
+
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -51,6 +62,17 @@ head(data)
 ```
 
 2. Data Exploration
+
+### Exploratory data plots 
+- I have used plot_intro function from DataExplorer package
+- plot_intro provides an insight of what type of data is present along with that it 
+  provides the information about missing values
+- Apart from that, I have used str and summary to understand the structure of the data present
+- To calculate the number of NA present in the data I have created a function inside 
+  sapply it returns column name and NA present in it
+- To get a better understanding of the distribution of the data, I have plotted each column
+  in barplot
+- In the plots we can observe Age, Gender, self_employed, work_interfere columns need to be cleaned
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -98,6 +120,19 @@ grid.arrange(g19,g20,g21,g22,g23,nrow=3)
 
 ```
 
+### Detection of outliers and data imputation 
+- I have checked only the age column since it is the only numerical column 
+  present in the whole dataset
+- On observing the box plot and summary of Age column, I got to know that it has a few outliers
+- This is because Age cannot contain negative values or values greater than 100
+- I removed these outliers and imputed them with median value
+- Apart from that, I have imputed mode values for the NA's present in
+  self_employed and work_interfere columns
+- Lastly Gender column was also cleaned, It contained many values for each type of gender 
+  so I generalized the column
+- Plots for each cleaned columns have been shown below
+- I have also stored this clean data in a new TableauDataCSV file for making a dashboard in Tableau.
+
 ```{r warning=FALSE,message=FALSE}
 
 ##################################################
@@ -113,17 +148,6 @@ Mode <- function(x)
     ux <- unique(x)
     ux[which.max(tabulate(match(x,ux)))]
   }
-
-#Cleaning self-employed column
-#On observing the summary of the data we see that self_emplyed 
-#column has many NA values present
-summary(MH_data$self_employed)
-
-#Remove NA and impute mode values
-#Since most of the columns are categorical 
-#variable imputation is done by Mode function
-MH_data$self_employed[is.na(MH_data$self_employed)] <- Mode(MH_data$self_employed)
-summary(MH_data$self_employed)
 
 #Cleaning Age Column 
 summary(MH_data$Age)
@@ -144,6 +168,16 @@ p3 <- ggplot(data,aes(x=Age))+geom_histogram(fill="red")+ggtitle("Age with Outli
 p4 <- ggplot(MH_data,aes(x=Age))+geom_histogram(aes(y=..density..),fill="#5DDDF4")+ggtitle("Age without Outliers")+geom_density(alpha=0.5)
 grid.arrange(p1,p3,p2,p4,nrow=2,top="Outlier Check")
 
+#Cleaning self-employed column
+#On observing the summary of the data we see that self_emplyed 
+#column has many NA values present
+summary(MH_data$self_employed)
+
+#Remove NA and impute mode values
+#Since most of the columns are categorical 
+#variable imputation is done by Mode function
+MH_data$self_employed[is.na(MH_data$self_employed)] <- Mode(MH_data$self_employed)
+summary(MH_data$self_employed)
 
 #Cleaning Gender column
 summary(MH_data$Gender)
@@ -181,6 +215,8 @@ par(mfrow=c(1,2))
 barplot(summary(data$work_interfere),col = "#078AD7",main = "work_interfere column with NA")
 barplot(table(MH_data$work_interfere),col = "#D0FCA9",main = "work_interfere column without NA")
 
+#Storing cleaned data for Tableau Visualization
+write.table(MH_data,"TableauDataCSV.csv", sep = ",",col.names = !file.exists("myDF.csv"), append = T,row.names = FALSE)
 #Remove unwanted columns
 #Comments,country,state,and timestamp are unwanted 
 #columns so we remove it from that dataset
@@ -197,6 +233,19 @@ MH_data_factors <- MH_data
 
 ```
 
+### Feature Engineering - Dummy codes
+- Since the whole data is categorical, I have already used factors datatype.
+- So instead of dummy coding each column, I just converted the factors data to numeric 
+  which does the dummy coding part
+- I have also stored the original factor dataset in a variable called MH_data_factors
+- This numeric data is used only for neural network classifier and for correlation
+  analysis, other than that all other algorithms make use of factor dataset
+
+Correlation/Collinearity analysis
+- Numerical data is required for calculating correlation, so I have converted factor 
+  data to numerical data 
+- Correlation plot is shown for whole data
+- I have also shown the plot of correlation between treatment and all other features
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -262,6 +311,30 @@ ggplot(data = correlations, aes(x = V1, y = names, color = names, group = names)
 
 3. Data Cleaning & Shaping
 
+### Data Imputation
+- Data imputation is already done in previous chunks
+- Imputation for age, self_employed and work_interfere is done
+
+### Proper Encoding of Data
+- Encoding was done for only Age column
+- Age is categorized into three types Fresher, Junior and Senior
+
+### Normalization/Standardization
+- Normalizing the data did not make any difference in predictions
+- This is because the data is categorical and not continous
+- So I have not used normalized data for my models
+
+### Feature engineering - PCA
+- Principal component analysis is also done using prComp function
+- On observing the summary of the principal components, I got to know that reducing 
+  the features won't help much because there was very less amount of variance in the
+  principal components
+- Principal components are taken into consideration only when the cumulative variance is greater
+  than 85%
+- To get the cumulative variance of 85 or greater, I was forced to select 17 components
+  which is almost the same as using 23 components
+- Because of this I haven't used Principal components for my models
+
 ```{r warning=FALSE,message=FALSE}
 
 ###################################################
@@ -270,6 +343,7 @@ ggplot(data = correlations, aes(x = V1, y = names, color = names, group = names)
 
 #Encoding of Age column to 3 types
 MH_data$Age <- cut(MH_data$Age, breaks = c(15, 25, 45, 75), labels = c('Fresher', 'Junior', 'Senior'))
+MH_data_factors$Age <- as.factor(cut(MH_data_factors$Age, breaks = c(15, 25, 45, 75), labels = c('Fresher', 'Junior', 'Senior')))
 
 #Using as.numeric will convert the encoded data to dummy codes
 MH_data$Age <- as.numeric(MH_data$Age)
@@ -324,9 +398,31 @@ screeplot(MH_PCA, type = "l", main = "Plot of the Principal Components")
 #Reducing the features won't increase the efficiency of the models based on  these components
 #Hence I will not be using these principal components for evaluation of my models
 
+write.table(MH_data,"shinyData.csv", sep = ",",col.names = !file.exists("shinyData.csv"), append = T,row.names = FALSE)
+
 ```
 
 4. Model Construction & Evaluation
+
+### Creation of training & validation subsets
+- Data splitting is done in 75:25 ratio
+- Partition is created using createDataPartition function
+
+### Construction of at least three related models
+- I built 4 models which are as follows: 
+  * Logistic Regression (glm) 
+  * Neural Network (neuralnet)
+  * Support Vector Machine (ksvm)
+  * Recursive Partitioning - Decision Trees (rpart)
+- For Neural Network model, I have used the numeric dataset whereas
+  for all other models factor dataset is used
+  
+### Evaluation of fit of models with holdout method
+- For model evaluation I have created two functions, mean absolute error(MAE)
+  and root mean squared error(RMSE)
+- Along with that, I have calculated accuracy of each model using the
+  confusionMatrix function
+- I have also calculated AUC for each model
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -367,7 +463,6 @@ testing_data_factor <- MH_data_factors[-index, ]
 
 ```
 
-
 ```{r warning=FALSE,message=FALSE}
 
 ###########################
@@ -394,7 +489,6 @@ MAE_glm <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm))
 roc_glm <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm))
 
 ```
-
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -433,7 +527,6 @@ roc_nn <- roc(as.numeric(testing_data$treatment), as.numeric(pred_nn))
 
 ```
 
-
 ```{r warning=FALSE,message=FALSE}
 
 ##############################
@@ -459,8 +552,6 @@ MAE_svm <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm))
 roc_svm <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm))
 
 ```
-
-
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -494,6 +585,12 @@ roc_rpart <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpar
 
 ```
 
+### Evaluation with k-fold cross-validation
+- k-Fold Cross Validation is done for the whole dataset
+- I have used k = 10 which means 10 folds take place along with 3 repetitions
+- For testing the data, I have used 3 models to test the k-fold CV 
+- Accuracy of each model is printed and based on the observation
+  average accuracy is around 72-73%
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -532,6 +629,17 @@ print(cv_svm)
 print(cv_rpart)
 
 ```
+
+### Tuning of models
+- I have tuned all the models as follows:
+  * Logistic Regression: Stepwise backward elimination method is used to evaluate 
+                         the new formula with reduced features
+  * Neural Network : Increased the number of hidden layer to 3
+  * Support Vector Machine: Changed the kernel function to vanilladot
+  * Recursive Partitioning: Changed the complexity parameter to 0.025
+- Tuning the models did not result in improved accuracies, only improvement was 
+  observed in SVM model
+- Apart from SVM model, all other models accuracy remained the same or reduced
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -628,6 +736,13 @@ roc_rpart_tuned <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pre
 
 ```
 
+### Comparison of models
+- For Comparison, plot of accuracy and other metric are shown below
+- It is observed from the plot that recursive partition models performs 
+  the best amongst the others
+- Recursive partition has the best accuracy along with the lowest RMSE and
+  MAE error compared to other models
+- Separate dataframe is created for MAE, RMSE and AUC values of each model
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -674,7 +789,14 @@ barchart(MAE+RMSE+AUC~Models,data=comparison,run=best,
 
 ```
 
-
+### Construction of ensemble model 
+- Stack learner from caretEnsemble is used to build a stacked ensemble model
+- For base model, I have used rpart, glm and svmRadial algorithms
+- For the final stack learner, I have used glm i.e logistic regression
+- Each model from base make individual predictions and final predictions is 
+  done from these outcomes using logistic regression
+- Comparison of ensemble model with other model is also shown using a bar chart
+- It is observed that accuracy of ensemble model is lesser compared to decision trees
 
 ```{r warning=FALSE,message=FALSE}
 
@@ -736,6 +858,10 @@ barchart(MAE+RMSE+AUC~Models,data=comparison_new,run=best,
 
 ```
 
+### Model Deployment
+- For model deployment, I have used neural network model and stored it in a rds file
+- This .rds file is used in RShiny app to make predictions
+- I have deployed the RShiny app using Heroku
 
 ```{r}
 
@@ -743,6 +869,8 @@ barchart(MAE+RMSE+AUC~Models,data=comparison_new,run=best,
 saveRDS(neuralnet_model,'model.rds')
 
 ```
+
+- A wordcloud is built using the comments feature to see what most of the professional felt like sharing
 
 ```{r}
 
@@ -764,7 +892,7 @@ corpus_clean <- tm_map(corpus_clean, stripWhitespace)
 inspect(corpus_clean[1:2])
 
 #Using wordcloud to see most common words used in comments of the survey
-wordcloud(corpus_clean,min.freq = 10, random.order = FALSE)
+wordcloud(corpus_clean,max.words=100 ,random.order=FALSE,rot.per=0.35,colors=brewer.pal(8,"RdYlBu"))
 
 ```
 

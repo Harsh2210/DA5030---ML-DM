@@ -5,15 +5,6 @@ library(shinythemes)
 library(data.table)
 library(RCurl)
 
-# Read data
-#weather <- read.csv(text = getURL("https://raw.githubusercontent.com/dataprofessor/data/master/weather-weka.csv") )
-
-# Build model
-#model <- randomForest(play ~ ., data = weather, ntree = 500, mtry = 4, importance = TRUE)
-
-# Save model to RDS file
-# saveRDS(model, "model.rds")
-
 # Read in the RF model
 model <- readRDS("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\DA5030\\model.rds")
 
@@ -119,8 +110,6 @@ server <- function(input, output, session) {
     
     # Input Data
     datasetInput <- reactive({  
-        
-        # outlook,temperature,humidity,windy,play
         df <- data.frame(
             Value = as.numeric(c(input$Age,
                                  input$Gender,
@@ -157,22 +146,22 @@ server <- function(input, output, session) {
                    "benefits",
                    "care_options",
                    "wellness_program",
-                   "seek_help","anonymity","leave","mental_health_consequence",
-                   "phys_health_consequence","coworkers","supervisor","mental_health_interview",
-                   "phys_health_interview","mental_vs_physical","obs_consequence")         
+                   "seek_help",
+                   "anonymity",
+                   "leave",
+                   "mental_health_consequence",
+                   "phys_health_consequence",
+                   "coworkers",
+                   "supervisor",
+                   "mental_health_interview",
+                   "phys_health_interview",
+                   "mental_vs_physical",
+                   "obs_consequence")         
         colnames(df) <- names
-        #play <- "play"
-        #df <- rbind(df, play)
-        #input <- transpose(df)
-        #write.table(input,"input.csv", sep=",", quote = FALSE, row.names = FALSE, col.names = FALSE)
         
-        #test <- read.csv(paste("input", ".csv", sep=""), header = TRUE)
-        
-        #test$outlook <- factor(test$outlook, levels = c("overcast", "rainy", "sunny"))
-        
-        Output <- predict(model,df)
-        pred_nn <- data.frame(Prediction=as.factor(ifelse(Output>1.5, "You Sought treatment", "You Should Seek Treatment")))
-        
+        Output <- data.frame(Prediction=predict(model,df))
+        pred_nn <- ifelse(Output > 1.5, "Sought treatment", "Not Sought Treatment")
+        print(Output)
         print(pred_nn)
         
     })
