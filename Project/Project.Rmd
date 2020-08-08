@@ -156,6 +156,12 @@ summary(MH_data$Age)
 #We can observe these incorrect values in the summary as well as in the plots
 #Obvious outlier here are -1.726e+03 and 1.000e+11. 
 #Replacing with NA and then Imputing using median
+
+mean_data <- mean(MH_data$Age)
+sd_data <- sd(MH_data$Age)
+zscore <- abs((MH_data$Age - mean_data)/sd_data)
+print(MH_data[which((zscore>3)),2])
+
 MH_data$Age <- sapply(MH_data$Age ,function(x) ifelse(x > 100 || x < 15, yes = NA,x))
 sum(is.na(MH_data$Age))
 MH_data$Age[is.na(MH_data$Age)] <- median(MH_data$Age,na.rm = TRUE)
