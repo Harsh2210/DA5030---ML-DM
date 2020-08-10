@@ -1,0 +1,949 @@
+---
+title: "Project"
+author: "Harsh"
+date: "25/07/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+- Importing all required libraries
+
+```{r warning=FALSE,message=FALSE}
+
+#Importing Libraries
+
+#install.packages("rattle")
+#install.packages("DataExplorer")
+#install.packages("factoextra")
+library(factoextra)
+library(DataExplorer)
+library(caret)
+library(psych)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(GGally)
+library(reshape2)
+library(C50)
+library(gmodels)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(neuralnet)
+library(kernlab)
+library(caretEnsemble)
+library(pROC)
+library(Metrics)
+library(OneR)
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+library(e1071)
+
+```
+
+1. Data Acquisition
+
+- For Importing data, I have used read.csv function.
+- Using head function, I observed first few rows of the data
+- Since almost all the features are categorical, I have kept stringsAsFactors = True
+
+
+```{r warning=FALSE,message=FALSE}
+
+#Importing Dataset
+data <- read.csv("C:\\Users\\harsh\\Desktop\\Introduction to Machine learning and Data Mining\\Project\\survey.csv",stringsAsFactors = TRUE)
+
+#Exploring Dataset
+head(data)
+
+```
+
+2. Data Exploration
+
+### Exploratory data plots 
+- I have used plot_intro function from DataExplorer package
+- plot_intro provides an insight of what type of data is present along with that it 
+  provides the information about missing values
+- Apart from that, I have used str and summary to understand the structure of the data present
+- To calculate the number of NA present in the data I have created a function inside 
+  sapply it returns column name and NA present in it
+- To get a better understanding of the distribution of the data, I have plotted each column
+  in barplot
+- In the plots we can observe Age, Gender, self_employed, work_interfere columns need to be cleaned
+
+```{r warning=FALSE,message=FALSE}
+
+##############################
+### Exploratory data plots ###
+##############################
+
+#Visualizing structure of the dataset
+plot_intro(data)
+
+#Exploratory Analysis
+str(data)
+summary(data)
+sapply(data, function(x) sum(is.na(x)))
+
+#Plotting the distribution of the important features
+g1 <- ggplot(data,aes(x=Age,fill="Steelblue"))+geom_histogram()+theme(legend.position = "none")
+g2 <- ggplot(data,aes(x=Gender,fill=Gender))+geom_bar()+theme(legend.position = "none")
+g3 <- ggplot(data,aes(x=self_employed,fill=self_employed))+geom_bar()+theme(legend.position = "none")
+g4 <- ggplot(data,aes(x=family_history,fill=family_history))+geom_bar()+theme(legend.position = "none")
+g5 <- ggplot(data,aes(x=treatment,fill=treatment))+geom_bar()+theme(legend.position = "none")
+g6 <- ggplot(data,aes(x=work_interfere,fill=work_interfere))+geom_bar()+theme(legend.position = "none")
+g7 <- ggplot(data,aes(x=no_employees,fill=no_employees))+geom_bar()+theme(legend.position = "none")
+g8 <- ggplot(data,aes(x=remote_work,fill=remote_work))+geom_bar()+theme(legend.position = "none")
+g9 <- ggplot(data,aes(x=tech_company,fill=tech_company))+geom_bar()+theme(legend.position = "none")
+g10 <- ggplot(data,aes(x=benefits,fill=benefits))+geom_bar()+theme(legend.position = "none")
+g11 <- ggplot(data,aes(x=care_options,fill=care_options))+geom_bar()+theme(legend.position = "none")
+g12 <- ggplot(data,aes(x=wellness_program,fill=wellness_program))+geom_bar()+theme(legend.position = "none")
+g13 <- ggplot(data,aes(x=seek_help,fill=seek_help))+geom_bar()+theme(legend.position = "none")
+g14 <- ggplot(data,aes(x=anonymity,fill=anonymity))+geom_bar()+theme(legend.position = "none")
+g15 <- ggplot(data,aes(x=leave,fill=leave))+geom_bar()+theme(legend.position = "none")
+g16 <- ggplot(data,aes(x=mental_health_consequence,fill=mental_health_consequence))+geom_bar()+theme(legend.position = "none")
+g17 <- ggplot(data,aes(x=phys_health_consequence,fill=phys_health_consequence))+geom_bar()+theme(legend.position = "none")
+g18 <- ggplot(data,aes(x=coworkers,fill=coworkers))+geom_bar()+theme(legend.position = "none")
+g19 <- ggplot(data,aes(x=supervisor,fill=supervisor))+geom_bar()+theme(legend.position = "none")
+g20 <- ggplot(data,aes(x=mental_health_interview,fill=mental_health_interview))+geom_bar()+theme(legend.position = "none")
+g21 <- ggplot(data,aes(x=phys_health_interview,fill=phys_health_interview))+geom_bar()+theme(legend.position = "none")
+g22 <- ggplot(data,aes(x=mental_vs_physical,fill=mental_vs_physical))+geom_bar()+theme(legend.position = "none")
+g23 <- ggplot(data,aes(x=obs_consequence,fill=obs_consequence))+geom_bar()+theme(legend.position = "none")
+
+#Arranging the plots using grid.arrange function
+grid.arrange(g1,g2,g3,g4,g5,g6,g7,g8,g9,nrow=3)
+grid.arrange(g10,g11,g12,g13,g14,g15,g16,g17,g18,nrow=3)
+grid.arrange(g19,g20,g21,g22,g23,nrow=3)
+
+```
+
+### Detection of outliers and data imputation 
+- I have checked only the age column since it is the only numerical column 
+  present in the whole dataset
+- On observing the box plot and summary of Age column, I got to know that it has a few outliers
+- This is because Age cannot contain negative values or values greater than 100
+- I removed these outliers and imputed them with median value
+- Apart from that, I have imputed mode values for the NA's present in
+  self_employed and work_interfere columns
+- Lastly Gender column was also cleaned, It contained many values for each type of gender 
+  so I generalized the column
+- Plots for each cleaned columns have been shown below
+- I have also stored this clean data in a new TableauDataCSV file for making a dashboard in Tableau.
+
+```{r warning=FALSE,message=FALSE}
+
+##################################################
+### Detection of outliers and Data imputation  ###
+##################################################
+
+#Creating a copy of data
+MH_data <- data
+
+#Mode function used to calculate mode
+Mode <- function(x)
+  {
+    ux <- unique(x)
+    ux[which.max(tabulate(match(x,ux)))]
+  }
+
+#Cleaning Age Column 
+summary(MH_data$Age)
+
+#Age Column has quite a few outliers present
+#We can observe these incorrect values in the summary as well as in the plots
+#Obvious outlier here are -1.726e+03 and 1.000e+11. 
+#Replacing with NA and then Imputing using median
+
+mean_data <- mean(MH_data$Age)
+sd_data <- sd(MH_data$Age)
+zscore <- abs((MH_data$Age - mean_data)/sd_data)
+print(MH_data[which((zscore>3)),2])
+
+MH_data$Age <- sapply(MH_data$Age ,function(x) ifelse(x > 100 || x < 15, yes = NA,x))
+sum(is.na(MH_data$Age))
+MH_data$Age[is.na(MH_data$Age)] <- median(MH_data$Age,na.rm = TRUE)
+sum(is.na(MH_data$Age))
+
+#We can observe the difference in Age column before and after removing outliers
+p1 <- ggplot(data,aes(y=Age),outcol="red")+geom_boxplot(outlier.colour="Red", outlier.shape=16,outlier.size=2,fill = "skyblue")+ggtitle("Age with Outliers")
+p2 <- ggplot(MH_data,aes(y=Age),outcol="blue")+geom_boxplot(outlier.colour="#0827A7", outlier.shape=16,outlier.size=2,fill = "#5DDDF4")+ggtitle("Age without Outliers")
+p3 <- ggplot(data,aes(x=Age))+geom_histogram(fill="red")+ggtitle("Age with Outliers")
+p4 <- ggplot(MH_data,aes(x=Age))+geom_histogram(aes(y=..density..),fill="#5DDDF4")+ggtitle("Age without Outliers")+geom_density(alpha=0.5)
+grid.arrange(p1,p3,p2,p4,nrow=2,top="Outlier Check")
+
+#Cleaning self-employed column
+#On observing the summary of the data we see that self_emplyed 
+#column has many NA values present
+summary(MH_data$self_employed)
+
+#Remove NA and impute mode values
+#Since most of the columns are categorical 
+#variable imputation is done by Mode function
+MH_data$self_employed[is.na(MH_data$self_employed)] <- Mode(MH_data$self_employed)
+summary(MH_data$self_employed)
+
+#Cleaning Gender column
+summary(MH_data$Gender)
+
+#Gender column has a lot of error values 
+#Using Unique function we can observe different types of gender values
+Gender_list <- unique(MH_data$Gender)
+Gender_list
+
+#We create a single vector for each type of gender and assign the different values present
+Male <- c("Male ", "Mail", "maile","Cis Man", "Malr", "Man", "Male", "male", "M", "cis male", "m", "Male-ish", "Mal", "Male (CIS)", "Cis Male", "Make", "Male", "msle")
+Female <- c("Female ","Female","femail","woman","Female","Female (cis)","cis-female/femme", "Cis Female", "Trans woman","female","F","Woman","f","Femake", "Trans-female", "Female (trans)")
+Queer <- c("Genderqueer","ostensibly male, unsure what that really means","p","A little about you","queer","Neuter", "queer/she/they","something kinda male?","non-binary","Nah","All","Enby","fluid","Androgyne","Agender","Guy (-ish) ^_^","male leaning androgynous")
+
+#Using the new vectors we make the proper distribution of gender
+MH_data$Gender <- as.factor(ifelse(MH_data$Gender %in% Male,"male",ifelse(MH_data$Gender %in% Female,"female","queer")))
+
+#Verifying Gender Column data after cleaning
+str(MH_data$Gender)
+table(MH_data$Gender)
+par(mfrow=c(1,2))
+barplot(table(data$Gender),col = "#6C0AAB",main = "Unclean Gender Column")
+barplot(table(MH_data$Gender),col = "skyblue",main = "Clean Gender Column")
+
+#Cleaning work_interfere
+#Using Summary we can see that there are around 200 NA values present
+summary(MH_data$work_interfere)
+
+#Since it is a categorical variable we'll impute using mode function
+MH_data$work_interfere[is.na(MH_data$work_interfere)] <- Mode(MH_data$work_interfere)
+summary(MH_data$work_interfere)
+
+#Observing the difference before and after imputationn
+par(mfrow=c(1,2))
+barplot(summary(data$work_interfere),col = "#078AD7",main = "work_interfere column with NA")
+barplot(table(MH_data$work_interfere),col = "#D0FCA9",main = "work_interfere column without NA")
+
+#Storing cleaned data for Tableau Visualization
+write.table(MH_data,"TableauDataCSV.csv", sep = ",",col.names = !file.exists("myDF.csv"), append = T,row.names = FALSE)
+#Remove unwanted columns
+#Comments,country,state,and timestamp are unwanted 
+#columns so we remove it from that dataset
+MH_data <- MH_data[,c(-1,-4,-5,-27)]
+
+#Verifying Cleaned data
+summary(MH_data)
+
+#No NA values present after cleaning
+sapply(MH_data, function(x) sum(is.na(x)))
+
+#Creating a copy of factor dataset for categorical classifiers
+MH_data_factors <- MH_data
+
+```
+
+### Feature Engineering - Dummy codes
+- Since the whole data is categorical, I have already used factors datatype.
+- So instead of dummy coding each column, I just converted the factors data to numeric 
+  which does the dummy coding part
+- I have also stored the original factor dataset in a variable called MH_data_factors
+- This numeric data is used only for neural network classifier and for correlation
+  analysis, other than that all other algorithms make use of factor dataset
+
+Correlation/Collinearity analysis
+- Numerical data is required for calculating correlation, so I have converted factor 
+  data to numerical data 
+- Correlation plot is shown for whole data
+- I have also shown the plot of correlation between treatment and all other features
+
+```{r warning=FALSE,message=FALSE}
+
+########################################
+### Feature engineering: dummy codes ###
+########################################
+
+#we have factor dataset, on converting it to numeric we get dummy codes
+str(MH_data)
+
+#Since Neural Network takes in only numeric data 
+#We convert the cleaned data to numeric type
+#Converting to numeric will also do the dummy coding as the data was of
+#factor type so converting to numeric makes it dummy coded
+for (i in 1:ncol(MH_data)){
+  if(is.factor(MH_data[,i] )){
+    MH_data[,i] <- as.numeric(MH_data[,i])
+  }
+}
+
+#Verifying the structure of the dataset
+str(MH_data)
+
+#########################################
+### Correlation/collinearity analysis ###
+#########################################
+
+#Creating a correlation plot of whole dataset
+cormat <- round(cor(MH_data),2)
+cormat
+melted_cormat <- melt(cormat)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()+xlab("")+ylab("")+ggtitle("Correlation plot")
+
+#Observing correlation of all features with treatment feature
+correlations <- as.data.frame(round(cor(MH_data[,-8],MH_data$treatment),2))
+names <- rownames(correlations)
+rownames(correlations) <- NULL
+correlations <- cbind(names,correlations)
+correlations <- correlations[order(-correlations$V1),]
+correlations$V1 <- abs(correlations$V1)
+correlations
+
+#Plotting the correlation of all features with treatment feature
+ggplot(data = correlations, aes(x = V1, y = names, color = names, group = names))+
+  geom_segment(data = correlations,aes(x=0,xend = V1, y = names, yend = names),size = 1)+
+  geom_point(size = 3)+ggtitle("Correlation with Treatment Feature")+
+  theme(legend.position = "none")+xlab("Correlation values")+ylab("Features")
+  
+#I also tried pairs.panels function for 
+#correlation but since there are more than 15 features
+#Plots are not clearly visible
+#pairs.panels(MH_data)
+
+```
+
+3. Data Cleaning & Shaping
+
+### Data Imputation
+- Data imputation is already done in previous chunks
+- Imputation for age, self_employed and work_interfere is done
+
+### Proper Encoding of Data
+- Encoding was done for only Age column
+- Age is categorized into three types Fresher, Junior and Senior
+
+### Normalization/Standardization
+- Normalizing the data did not make any difference in predictions
+- This is because the data is categorical and not continous
+- So I have not used normalized data for my models
+
+### Feature engineering - PCA
+- Principal component analysis is also done using prComp function
+- On observing the summary of the principal components, I got to know that reducing 
+  the features won't help much because there was very less amount of variance in the
+  principal components
+- Principal components are taken into consideration only when the cumulative variance is greater
+  than 85%
+- To get the cumulative variance of 85 or greater, I was forced to select 17 components
+  which is almost the same as using 23 components
+- Because of this I haven't used Principal components for my models
+
+```{r warning=FALSE,message=FALSE}
+
+###################################################
+### Proper encoding of data for algorithms used ###
+###################################################
+
+#Encoding of Age column to 3 types
+MH_data$Age <- cut(MH_data$Age, breaks = c(15, 25, 45, 75), labels = c('Fresher', 'Junior', 'Senior'))
+MH_data_factors$Age <- as.factor(cut(MH_data_factors$Age, breaks = c(15, 25, 45, 75), labels = c('Fresher', 'Junior', 'Senior')))
+
+#Using as.numeric will convert the encoded data to dummy codes
+MH_data$Age <- as.numeric(MH_data$Age)
+
+#Observing the distribution of the data
+for (i in 1:ncol(MH_data)) {
+  hist(MH_data[,i],col="purple", xlab = colnames(MH_data[i]), main = NULL)
+}
+
+#######################################################
+### Normalization/standardization of feature values ###
+#######################################################
+
+#Normalization function
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+#Observing the new structure of the data after encoding Age feature
+str(MH_data)
+
+#Creating a new normalized dataframe
+MH_norm <- MH_data
+
+#Normalizing the whole dataset 
+#Since the data is categorical it makes no sense to use the normalize data
+#I tried model evaluation with normalized dataset it made no 
+#difference so I have just stored it
+MH_norm[,-6] <- lapply(MH_data[,-6], normalize)
+MH_norm[,6] <- as.factor(MH_data[,6])
+
+################################
+### Feature engineering: PCA ###
+################################
+
+#Performing PCA on the dataset
+MH_PCA <- prcomp(MH_data[,-6], center = T, scale = T)
+
+#Printing Principal components
+print(MH_PCA)
+
+#Summary of Principal components
+summary(MH_PCA)
+
+#Plotting variance plot of the Principal components
+screeplot(MH_PCA, type = "l", main = "Plot of the Principal Components")
+
+#Based on the summary we can see that there is not much of a variance present.
+#It is advisable to use PCA when the cumulative proportion is above 85%
+#On observing the cumulative proportion we see that, a total of 17 components will 
+#be needed to make up 88% of the data which makes no sense because we will be reducing only 5 features
+#Reducing the features won't increase the efficiency of the models based on  these components
+#Hence I will not be using these principal components for evaluation of my models
+
+write.table(MH_data,"shinyData.csv", sep = ",",col.names = !file.exists("shinyData.csv"), append = T,row.names = FALSE)
+
+```
+
+4. Model Construction & Evaluation
+
+### Creation of training & validation subsets
+- Data splitting is done in 75:25 ratio
+- Partition is created using createDataPartition function
+
+### Construction of at least three related models
+- I built 4 models which are as follows: 
+  * Logistic Regression (glm) 
+  * Neural Network (neuralnet)
+  * Support Vector Machine (ksvm)
+  * Recursive Partitioning - Decision Trees (rpart)
+- For Neural Network model, I have used the numeric dataset whereas
+  for all other models factor dataset is used
+  
+### Evaluation of fit of models with holdout method
+- For model evaluation I have created two functions, mean absolute error(MAE)
+  and root mean squared error(RMSE)
+- Along with that, I have calculated accuracy of each model using the
+  confusionMatrix function
+- I have also calculated AUC for each model
+
+```{r warning=FALSE,message=FALSE}
+
+#Function for evaluating mean absolute error
+MAE <- function(actual, predicted) 
+{
+  mean(abs(actual - predicted))
+}
+
+#Function for evaluating root mean squared error
+RMSE <- function(actual, pred) 
+{
+  return(sqrt(sum((actual-pred)^2)/length(actual)))
+}
+
+```
+
+```{r warning=FALSE,message=FALSE}
+
+#################################################
+### Creation of training & validation subsets ###
+#################################################
+
+#Converting the predictor variable to factor
+MH_data$treatment <- as.factor(MH_data$treatment)
+
+#Setting the seed values for randomness
+set.seed(101)
+
+#Splitting the dataset into 75:25 ratio
+index <- createDataPartition(MH_data$treatment, p=0.75, list = FALSE, times = 1)
+#Using numeric dataset for Neural Network
+training_data <- MH_data[index, ]
+testing_data <- MH_data[-index, ]
+#Using categorical dataset for glm,SVM and rpart
+training_data_factor <- MH_data_factors[index, ]
+testing_data_factor <- MH_data_factors[-index, ]
+
+```
+
+```{r warning=FALSE,message=FALSE}
+
+###########################
+### Logistic Regression ###
+###########################
+
+#Building the logistic regression model using glm function
+lm <- glm( treatment~., data = training_data_factor, family = "binomial" )
+
+#Observing the summary of the model
+summary(lm)
+
+#Predicting the output for testing dataset
+predict_prob <- predict(lm, testing_data_factor, type = "response")
+
+#Since we recieve output as probability values we convert it
+pred_glm <- as.factor(ifelse(predict_prob < 0.5, "No", "Yes"))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_glm,testing_data_factor$treatment)
+accuracy_glm <- accuracy(pred_glm,testing_data_factor$treatment)
+RMSE_glm <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm))
+MAE_glm <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm))
+roc_glm <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm))
+
+```
+
+```{r warning=FALSE,message=FALSE}
+
+#Converting predictor feature to numeric for neural networks
+training_data$treatment <- as.numeric(training_data$treatment)
+testing_data$treatment <- as.numeric(testing_data$treatment)
+
+######################
+### Neural Network ###
+######################
+
+#Building neural network model with 1 hidden layer along with softplus function
+softplus <- function(x) log(1+exp(x))
+neuralnet_model <- neuralnet(treatment~., data = training_data,stepmax=1e+08,threshold = 0.5,rep = 1,linear.output = FALSE, act.fct = softplus)
+
+#Using compute() function to predict the outcome of testing dataset
+nn_predictions <- compute(neuralnet_model, testing_data[,-6])
+net_results <- nn_predictions$net.result
+
+#Checking the correlation of both predictor and predicted values
+cor(net_results,as.numeric(testing_data$treatment))
+
+#Plotting the neural network
+plot(neuralnet_model, rep="best")
+
+#Converting the numeric prediction to category
+pred_nn <- net_results
+pred_nn <- as.factor(ifelse(pred_nn>1.5, 2, 1))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_nn,as.factor(testing_data$treatment))
+accuracy_nn <- accuracy(pred_nn,as.factor(testing_data$treatment))
+RMSE_nn <- RMSE(as.numeric(testing_data$treatment), as.numeric(pred_nn))
+MAE_nn <- MAE(as.numeric(testing_data$treatment), as.numeric(pred_nn))
+roc_nn <- roc(as.numeric(testing_data$treatment), as.numeric(pred_nn))
+
+```
+
+```{r warning=FALSE,message=FALSE}
+
+##############################
+### Support Vector Machine ###
+##############################
+
+#Building SVM model with categorical data
+svm_model <- ksvm(treatment ~ ., data = training_data_factor,prob.model=TRUE,kernel="rbfdot")
+
+#Predicting outcome of the testing dataset
+pred_svm <- predict(svm_model, testing_data_factor)
+
+#Observing first few predictions
+head(pred_svm)
+
+#pred_svm <- as.factor(ifelse(pred_svm>1.5, 2, 1))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(as.factor(pred_svm),as.factor(testing_data_factor$treatment))
+accuracy_svm <- accuracy(as.factor(pred_svm),as.factor(testing_data_factor$treatment))
+RMSE_svm <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm))
+MAE_svm <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm))
+roc_svm <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm))
+
+```
+
+```{r warning=FALSE,message=FALSE}
+
+###############################################
+### Recursive Partitioning - Decision Trees ###
+###############################################
+
+#Building Decision tree model using rpart function
+rpart_model <- rpart(treatment ~ ., data = training_data_factor[,-3],method = "class")
+rpart_model
+
+#Observing the importance of each variable using summary
+#We can see 45% of the predictions is dependent on family history feature
+summary(rpart_model)
+
+#plotting the tree using fancyRpartPlot function
+fancyRpartPlot(rpart_model)
+
+#Predicting the outcome using testing dataset
+pred_rpart <- predict(rpart_model, testing_data_factor)
+
+#Since the output is in terms of probabilities we convert it to categorical values
+pred_rpart <- as.factor(ifelse(pred_rpart[,2] < 0.5, "No", "Yes"))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_rpart,testing_data_factor$treatment)
+accuracy_rpart <- accuracy(pred_rpart,testing_data_factor$treatment)
+RMSE_rpart <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart))
+MAE_rpart <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart))
+roc_rpart <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart))
+
+```
+
+### Evaluation with k-fold cross-validation
+- k-Fold Cross Validation is done for the whole dataset
+- I have used k = 10 which means 10 folds take place along with 3 repetitions
+- For testing the data, I have used 3 models to test the k-fold CV 
+- Accuracy of each model is printed and based on the observation
+  average accuracy is around 72-73%
+
+```{r warning=FALSE,message=FALSE}
+
+###############################
+### K-fold Cross Validation ###
+###############################
+
+#Creating a train function for cross validation 
+#We use k = 10 folds with repeated validation
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,repeats = 3,savePredictions = TRUE)
+
+#Cross validation is done using 3 models glm, SVM with 
+#Radial function, and rpart function
+cv_glm <- train(treatment ~ ., data = MH_data_factors, 
+                 method = "glm", 
+                 trControl = fitControl)
+
+cv_svm <- train(treatment ~ ., data = MH_data_factors, 
+                 method = "svmRadial", 
+                 trControl = fitControl)
+
+cv_rpart <- train(treatment ~ ., data = MH_data_factors, 
+                 method = "rpart", 
+                 trControl = fitControl)
+
+#Printing the accuracies of each model with cross validation 
+#cv_glm
+print(cv_glm)
+
+#cv_svm
+print(cv_svm)
+
+#cv_rpart
+print(cv_rpart)
+
+```
+
+### Tuning of models
+- I have tuned all the models as follows:
+  * Logistic Regression: Stepwise backward elimination method is used to evaluate 
+                         the new formula with reduced features
+  * Neural Network : Increased the number of hidden layer to 3
+  * Support Vector Machine: Changed the kernel function to vanilladot
+  * Recursive Partitioning: Changed the complexity parameter to 0.025
+- Tuning the models did not result in improved accuracies, only improvement was 
+  observed in SVM model
+- Apart from SVM model, all other models accuracy remained the same or reduced
+
+```{r warning=FALSE,message=FALSE}
+
+########################
+### Tuning of Models ###
+########################
+
+#Using stepwise backward method for glm()
+step(lm, direction="backward")
+
+#Tuning logistic regression model based on the 
+#formula generated from step function
+new_lm <- glm(formula = treatment ~ Age + Gender + family_history + work_interfere + 
+                tech_company + care_options + anonymity + mental_health_consequence + 
+                coworkers + mental_health_interview + obs_consequence, family = "binomial", 
+              data = training_data_factor)
+
+#Predicting the outcome of new model
+predict_prob <- predict(new_lm, testing_data_factor, type = "response")
+
+#converting the probability values to categorical values
+pred_glm_tuned <- (as.factor(ifelse(predict_prob < 0.5, "No", "Yes")))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(as.factor(pred_glm_tuned),as.factor(testing_data_factor$treatment))
+accuracy_glm_tuned <- accuracy(pred_glm_tuned,testing_data_factor$treatment)
+RMSE_glm_tuned <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm_tuned))
+MAE_glm_tuned <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm_tuned))
+roc_glm_tuned <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_glm_tuned))
+
+training_data$treatment <- as.numeric(training_data$treatment)
+testing_data$treatment <- as.numeric(testing_data$treatment)
+
+#Tuning neural network model by adding hidden layers to it
+softplus <- function(x) log(1+exp(x))
+neuralnet_model <- neuralnet(treatment~., data = training_data,stepmax=1e+08, hidden = 3, threshold = 0.5, rep = 1, linear.output = FALSE, act.fct = softplus)
+
+#Using compute() function to predict the outcome of testing dataset
+nn_predictions_tuned <- compute(neuralnet_model, testing_data[,-6])
+net_results_tuned <- nn_predictions_tuned$net.result
+
+#Checking the correlation of both predictor and predicted values
+cor(net_results_tuned,as.numeric(testing_data$treatment))
+
+#Plotting the neural network
+plot(neuralnet_model,rep="best")
+
+#Converting numeric predictions to categorical values
+pred_nn_tuned <- net_results
+pred_nn_tuned <- as.factor(ifelse(pred_nn_tuned > 1.5, 2, 1))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_nn_tuned,as.factor(testing_data$treatment))
+accuracy_nn_tuned <- accuracy(pred_nn_tuned,as.factor(testing_data$treatment))
+RMSE_nn_tuned <- RMSE(as.numeric(testing_data$treatment), as.numeric(pred_nn_tuned))
+MAE_nn_tuned <- MAE(as.numeric(testing_data$treatment), as.numeric(pred_nn_tuned))
+roc_nn_tuned <- roc(as.numeric(testing_data$treatment), as.numeric(pred_nn_tuned))
+
+#Tuning SVM model by using Linear function instead of RBF function
+svm_model <- ksvm(treatment ~ ., data = training_data_factor,prob.model=TRUE,kernel="vanilladot")
+
+##Predicting the outcome of tuned model
+pred_svm_tuned <- predict(svm_model, testing_data_factor)
+head(pred_svm_tuned)
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(as.factor(pred_svm_tuned),as.factor(testing_data_factor$treatment))
+accuracy_svm_tuned <- accuracy(as.factor(pred_svm_tuned),as.factor(testing_data_factor$treatment))
+RMSE_svm_tuned <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm_tuned))
+MAE_svm_tuned <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm_tuned))
+roc_svm_tuned <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_svm_tuned))
+
+
+#Tuning Decision Trees by using complexity parameter value as 0.025
+rpart_model <- rpart(treatment ~ ., data = training_data_factor[,-3],method = "class",cp=0.025)
+rpart_model
+
+##Observing the importance of each variable using summary
+summary(rpart_model)
+
+#plotting the tree using fancyRpartPlot function
+fancyRpartPlot(rpart_model)
+
+##Predicting the outcome of tuned model
+pred_rpart_tuned <- predict(rpart_model, testing_data_factor)
+pred_rpart_tuned <- as.factor(ifelse(pred_rpart_tuned[,2] < 0.5, "No", "Yes"))
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_rpart_tuned,testing_data_factor$treatment)
+accuracy_rpart_tuned <- accuracy(pred_rpart_tuned,testing_data_factor$treatment)
+RMSE_rpart_tuned <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart_tuned))
+MAE_rpart_tuned <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart_tuned))
+roc_rpart_tuned <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_rpart_tuned))
+
+```
+
+### Comparison of models
+- For Comparison, plot of accuracy and other metric are shown below
+- It is observed from the plot that recursive partition models performs 
+  the best amongst the others
+- Recursive partition has the best accuracy along with the lowest RMSE and
+  MAE error compared to other models
+- Separate dataframe is created for MAE, RMSE and AUC values of each model
+
+```{r warning=FALSE,message=FALSE}
+
+############################
+### Comparison of models ###
+############################
+
+#Creating a dataframe of model accuracy for comparison
+comparison_acc <- data.frame(Models = c("Logistic Regression","Neural Network","Support Vector Machine","Recursive Partitioning"),
+                         Original = c(accuracy_glm,accuracy_nn,accuracy_svm,accuracy_rpart),
+                         Tuned = c(accuracy_glm_tuned,accuracy_nn_tuned,accuracy_svm_tuned,accuracy_rpart_tuned))
+
+#Plotting the accuracies of the models
+ggplot(data = comparison_acc, aes(x = Original, y = Models, color = Models, group = Models))+
+  geom_segment(data = comparison_acc,aes(x=0,xend = Original, y = Models, yend = Models),size = 3)+
+  geom_point(size = 5)+ggtitle("Accuracy of Original Models")+
+  theme(legend.position = "none")+xlab("Accuracy")+ylab("Models")
+
+#Comparing the accuracy of original and tuned models
+colors = c('Darkblue', 'skyblue')
+barchart(Original+Tuned~Models,data=comparison_acc,run=best, 
+         ylab = "Accuracy", 
+         xlab = "Models",
+         scales=list(alternating=1),
+         auto.key=list(space="top", columns=2,points=FALSE, 
+                       rectangles=TRUE, cex.title=1),
+         par.settings=list(superpose.polygon=list(col=colors)),main = "Accuracy Comparison")
+
+#Comparing the model evaluation metrics of all the models
+comparison <- data.frame(Models = c("Logistic Regression","Neural Network","Support Vector Machine","Recursive Partitioning"),
+                         MAE = c(MAE_glm,MAE_nn,MAE_svm,MAE_rpart), RMSE = c(RMSE_glm,RMSE_nn,RMSE_svm,RMSE_rpart),
+                         AUC = c(roc_glm$auc,roc_nn$auc,roc_svm$auc,roc_rpart$auc))
+#Comparison Dataframe
+comparison
+
+#Plotting the comparison of model evaluation metrics of all the models
+colors = c('red', 'orange', 'yellow')
+barchart(MAE+RMSE+AUC~Models,data=comparison,run=best, 
+         ylab = "Values", 
+         xlab = "Models",scales=list(alternating=1),
+         auto.key=list(space='right', rows=3,points=FALSE, 
+                       rectangles=TRUE,title="Metrics", cex.title=1),
+         par.settings=list(superpose.polygon=list(col=colors)),main="Model Evaluation Results")
+
+```
+
+### Construction of ensemble model 
+- Stack learner from caretEnsemble is used to build a stacked ensemble model
+- For base model, I have used rpart, glm and svmRadial algorithms
+- For the final stack learner, I have used glm i.e logistic regression
+- Each model from base make individual predictions and final predictions is 
+  done from these outcomes using logistic regression
+- Comparison of ensemble model with other model is also shown using a bar chart
+- It is observed that accuracy of ensemble model is lesser compared to decision trees
+
+```{r warning=FALSE,message=FALSE}
+
+######################################
+### Construction of ensemble model ###
+######################################
+
+#Using train function from caret package to 
+#create a base model which consist 3 models
+control <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions="all", classProbs=TRUE)
+algorithmList <- c('rpart', 'glm', 'svmRadial')
+set.seed(101)
+
+#Training the models using training dataset 
+models <- caretList(treatment~., data=training_data_factor, trControl=control, methodList=algorithmList)
+results <- resamples(models)
+
+#Observing the results using summary and dotplot
+summary(results)
+dotplot(results)
+
+#Creating a new traincontrol method for final stage of the stack learner
+stackControl <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions="all", classProbs=TRUE)
+set.seed(101)
+
+# Using glm at the final stage of the stack learner
+stack.glm <- caretStack(models, method="glm", metric="Accuracy", trControl=stackControl)
+
+#Printing the accuracy of the model
+print(stack.glm)
+
+#Predicting the outcome for the stack ensemble learner
+pred_ensemble <- predict(stack.glm, testing_data_factor)
+
+#Model evaluation using confusionMatrix, Accuracy, RMSE, MAE, and AUC
+confusionMatrix(pred_ensemble,testing_data_factor$treatment)
+accuracy_ensemble <- accuracy(pred_ensemble,testing_data_factor$treatment)
+RMSE_ensemble <- RMSE(as.numeric(testing_data_factor$treatment), as.numeric(pred_ensemble))
+MAE_ensemble <- MAE(as.numeric(testing_data_factor$treatment), as.numeric(pred_ensemble))
+roc_ensemble <- roc(as.numeric(testing_data_factor$treatment), as.numeric(pred_ensemble))
+
+#Comparing the model evaluation metrics of all the models
+comparison_new <- data.frame(Models = c("Logistic Regression","Neural Network","Support Vector Machine",
+                                        "Recursive Partitioning","Ensemble Model"),
+                         MAE = c(MAE_glm,MAE_nn,MAE_svm,MAE_rpart,MAE_ensemble), 
+                         RMSE = c(RMSE_glm,RMSE_nn,RMSE_svm,RMSE_rpart,RMSE_ensemble),
+                         AUC = c(roc_glm$auc,roc_nn$auc,roc_svm$auc,roc_rpart$auc,roc_ensemble$auc))
+#Comparison Dataframe
+comparison_new
+
+#Plotting the comparison of model evaluation metrics of all the models
+colors = c('red', 'orange', 'yellow')
+barchart(MAE+RMSE+AUC~Models,data=comparison_new,run=best, 
+         ylab = "Values", 
+         xlab = "Models",scales=list(alternating=1),
+         auto.key=list(space='top', columns=3,points=FALSE, 
+                       rectangles=TRUE,title="Metrics", cex.title=1),
+         par.settings=list(superpose.polygon=list(col=colors)),main="Model Evaluation Results")
+
+```
+
+### Model Deployment
+- For model deployment, I have used neural network model and stored it in a rds file
+- This .rds file is used in RShiny app to make predictions
+- I have deployed the RShiny app using Heroku
+
+```{r}
+
+#RDS File for Shiny R app
+saveRDS(neuralnet_model,'model.rds')
+
+```
+
+- A wordcloud is built using the comments feature to see what most of the professional felt like sharing
+
+```{r}
+
+#Getting comments from the survey
+comments <- data[,27]
+comments1 <-  comments[!is.na(comments)]
+comments_corpus <- Corpus(VectorSource(comments1))
+#We can observe total documents using print
+print(comments_corpus)
+#To observe the content we use inspect() function
+inspect(comments_corpus[1:2])
+#We remove all the numbers and punctuations using tm_map() function. It is used to transform data.
+corpus_clean <- tm_map(comments_corpus, tolower)
+corpus_clean <- tm_map(corpus_clean, removeNumbers)
+corpus_clean <- tm_map(corpus_clean, removeWords, stopwords())
+corpus_clean <- tm_map(corpus_clean, removePunctuation)
+corpus_clean <- tm_map(corpus_clean, stripWhitespace)
+#We verify using inspect whether all unwanted characters are removed
+inspect(corpus_clean[1:2])
+
+#Using wordcloud to see most common words used in comments of the survey
+wordcloud(corpus_clean,max.words=100 ,random.order=FALSE,rot.per=0.35,colors=brewer.pal(8,"RdYlBu"))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

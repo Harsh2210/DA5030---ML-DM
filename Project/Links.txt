@@ -1,0 +1,15 @@
+Link to the Rubric:  https://docs.google.com/spreadsheets/d/1r0g3qAtrwI6MVJIY6nryBZdTM9eAxS_rXeHpG_tNGZA/edit#gid=0
+
+Link to the Dataset:  https://www.kaggle.com/osmi/mental-health-in-tech-survey ﻿﻿﻿﻿﻿
+
+Link to the Shiny App - Heroku:  https://mental-health-survey-project.herokuapp.com/
+
+Link to the Tableau Viz:  https://public.tableau.com/profile/harsh.janyani#!/vizhome/MentalHealthSurvey-Project/Dashboard1?publish=yes
+
+Link to the Video Presentation: 
+
+1. https://youtu.be/QFmMRt2yo6w 
+
+2. Backup Link: https://northeastern-my.sharepoint.com/:f:/g/personal/janyani_h_northeastern_edu/EiQvb11lUudEsL6ni2IlYZYBp5ohEj8kKuxoh-6gojdrGw?e=WZVbAh
+
+Link to My Github Repository:  https://github.com/Harsh2210/Introduction-to-Machine-learning-and-Data-Mining-DA5030/tree/master/Project
